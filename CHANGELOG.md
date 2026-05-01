@@ -16,6 +16,9 @@ et le projet adhère à [Semantic Versioning 2.0](https://semver.org/lang/fr/).
   « Identifiant Last.fm » du formulaire d'import et sert de fallback
   quand l'argument `lastfm-user` est omis sur la CLI
   (`app:lastfm:import`).
+- Variable d'environnement `LASTFM_PAGE_DELAY_SECONDS` (défaut 10) :
+  pause configurable entre deux pages successives de l'API Last.fm
+  pour éviter le rate-limiting. Passer à 0 pour désactiver.
 
 <!--
 Sections disponibles pour les futures entrées :

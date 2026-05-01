@@ -240,6 +240,7 @@ Le push du tag déclenche `docker-publish` (cf. `.github/workflows/ci.yml`).
 | `LIDARR_MONITOR`               | `all` / `future` / `missing` / `existing` / `first` / `latest` / `none` |
 | `LASTFM_API_KEY`               | Optionnel, fallback du formulaire et de la CLI              |
 | `LASTFM_USER`                  | Optionnel, pré-remplit le champ user / fallback CLI         |
+| `LASTFM_PAGE_DELAY_SECONDS`    | Pause entre 2 pages de l'API (default 10, 0 pour désactiver)|
 
 Wirées dans : `.env` (dev), `.env.dist` (template), `phpunit.xml.dist`
 (test), `.lando.yml.dist` (Lando), `docker-compose.example.yml`,

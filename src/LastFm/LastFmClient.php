@@ -11,6 +11,7 @@ class LastFmClient
 
     public function __construct(
         private readonly HttpClientInterface $httpClient,
+        private readonly int $pageDelaySeconds = 10,
     ) {
     }
 
@@ -76,6 +77,14 @@ class LastFmClient
                 $totalPages = (int) ($payload['recenttracks']['@attr']['totalPages'] ?? 1);
             }
             $page++;
+
+            // Throttle: avoid hammering the Last.fm API between page fetches.
+            // Sleep is skipped after the last page (loop will exit) and when
+            // the caller breaks out mid-page (generator dies before reaching
+            // this point).
+            if ($page <= $totalPages && $this->pageDelaySeconds > 0) {
+                sleep($this->pageDelaySeconds);
+            }
         } while ($page <= $totalPages);
     }
 

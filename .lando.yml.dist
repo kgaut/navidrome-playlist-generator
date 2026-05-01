@@ -44,6 +44,9 @@ services:
         # Default Last.fm username pre-filled in the import form and used
         # when the CLI argument is omitted. Leave empty to require it.
         LASTFM_USER: ''
+        # Pause (in seconds) between two consecutive Last.fm API page
+        # fetches. Default 10, set to 0 to disable.
+        LASTFM_PAGE_DELAY_SECONDS: '10'
 
   cron:
     type: php:8.3

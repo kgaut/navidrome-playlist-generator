@@ -230,7 +230,10 @@ la variable d'environnement `LASTFM_API_KEY`. De même, le username peut
 
 1. **Pagination** : utilise `user.getRecentTracks` de l'API Last.fm,
    200 scrobbles par page, jusqu'au bout de l'historique (filtré par
-   `--date-min` / `--date-max` si fournis).
+   `--date-min` / `--date-max` si fournis). Une pause configurable
+   (`LASTFM_PAGE_DELAY_SECONDS`, défaut 10s) sépare deux pages
+   consécutives pour éviter de surcharger l'API ; passez à 0 pour
+   désactiver.
 2. **Matching** sur la lib Navidrome :
    - d'abord par MusicBrainz ID si Last.fm le fournit ;
    - sinon par couple `(artist, title)` normalisé (lowercase + trim).
