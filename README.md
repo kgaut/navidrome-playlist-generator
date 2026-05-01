@@ -7,7 +7,23 @@ Boîte à outils web self-hosted (Symfony 7) autour de
 sur les écoutes, statistiques détaillées, import one-shot des scrobbles
 Last.fm, intégration Lidarr et historique des runs cron.
 
-Image Docker publiée sous `ghcr.io/kgaut/navidrome-tools`.
+## Image Docker publiée
+
+L'image officielle est publiée automatiquement sur GitHub Container
+Registry (`ghcr.io/kgaut/navidrome-tools`) par la CI :
+
+| Évènement                | Tags publiés                                              |
+|--------------------------|-----------------------------------------------------------|
+| Push sur `main`          | `latest`, `main-<sha7>`                                   |
+| Push d'un tag `v1.2.3`   | `1.2.3`, `1.2`, `1`, `latest`                             |
+| Push sur autre branche   | `<nom-de-branche>` (utile pour tester un PR mergé)        |
+| Pull request             | aucun push, build de validation seulement                 |
+
+Image multi-arch : `linux/amd64` + `linux/arm64`.
+
+```bash
+docker pull ghcr.io/kgaut/navidrome-tools:latest
+```
 
 Fonctionnalités principales :
 
