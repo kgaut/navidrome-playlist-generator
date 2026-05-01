@@ -23,6 +23,8 @@ variables:
 # Cached on composer.lock so vendor/ survives across pipelines.
 # --------------------------------------------------------------------
 .php:
+  tags:
+    - job-docker
   cache:
     key:
       files:
