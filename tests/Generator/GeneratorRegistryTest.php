@@ -65,6 +65,10 @@ class GeneratorRegistryTest extends TestCase
             {
                 return [];
             }
+            public function getActiveWindow(array $parameters): ?array
+            {
+                return null;
+            }
         };
     }
 }

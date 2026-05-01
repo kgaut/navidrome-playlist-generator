@@ -34,4 +34,9 @@ class TopAllTimeGenerator implements PlaylistGeneratorInterface
     {
         return $this->navidrome->topAllTime($limit);
     }
+
+    public function getActiveWindow(array $parameters): ?array
+    {
+        return null;
+    }
 }

@@ -32,10 +32,15 @@ class TopLastCalendarMonthGenerator implements PlaylistGeneratorInterface
 
     public function generate(array $parameters, int $limit): array
     {
-        $now = new \DateTimeImmutable('now');
-        $startOfThisMonth = $now->modify('first day of this month')->setTime(0, 0);
-        $startOfLastMonth = $startOfThisMonth->modify('-1 month');
+        $w = $this->getActiveWindow($parameters);
 
-        return $this->navidrome->topTracksInWindow($startOfLastMonth, $startOfThisMonth, $limit);
+        return $this->navidrome->topTracksInWindow($w['from'], $w['to'], $limit);
+    }
+
+    public function getActiveWindow(array $parameters): ?array
+    {
+        $startOfThisMonth = (new \DateTimeImmutable('now'))->modify('first day of this month')->setTime(0, 0);
+
+        return ['from' => $startOfThisMonth->modify('-1 month'), 'to' => $startOfThisMonth];
     }
 }

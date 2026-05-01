@@ -35,6 +35,10 @@ class PlaylistNameRendererTest extends TestCase
             {
                 return [];
             }
+            public function getActiveWindow(array $parameters): ?array
+            {
+                return null;
+            }
         };
 
         $def = (new PlaylistDefinition())

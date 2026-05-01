@@ -34,4 +34,9 @@ class NeverPlayedRandomGenerator implements PlaylistGeneratorInterface
     {
         return $this->navidrome->neverPlayedRandom($limit);
     }
+
+    public function getActiveWindow(array $parameters): ?array
+    {
+        return null;
+    }
 }

@@ -57,4 +57,11 @@ class SongsYouUsedToLoveGenerator implements PlaylistGeneratorInterface
 
         return $this->navidrome->getSongsLovedAndForgotten($minPlays, $cutoff, $limit);
     }
+
+    public function getActiveWindow(array $parameters): ?array
+    {
+        // Lifetime concept (we look at total play_count, not a window),
+        // so the preview will keep showing the global plays count.
+        return null;
+    }
 }

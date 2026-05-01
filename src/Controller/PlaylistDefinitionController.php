@@ -125,9 +125,14 @@ class PlaylistDefinitionController extends AbstractController
 
         $error = null;
         $tracks = [];
+        $window = $generator->getActiveWindow($def->getParameters());
         try {
             $ids = $generator->generate($def->getParameters(), $limit);
-            $tracks = $navidrome->summarize($ids);
+            $tracks = $navidrome->summarize(
+                $ids,
+                $window['from'] ?? null,
+                $window['to'] ?? null,
+            );
         } catch (\Throwable $e) {
             $error = $e->getMessage();
         }
@@ -138,6 +143,7 @@ class PlaylistDefinitionController extends AbstractController
             'tracks' => $tracks,
             'limit' => $limit,
             'error' => $error,
+            'window' => $window,
         ]);
     }
 

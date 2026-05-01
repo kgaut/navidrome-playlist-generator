@@ -41,13 +41,19 @@ class TopYearsAgoGenerator implements PlaylistGeneratorInterface
 
     public function generate(array $parameters, int $limit): array
     {
+        $w = $this->getActiveWindow($parameters);
+
+        return $this->navidrome->topTracksInWindow($w['from'], $w['to'], $limit);
+    }
+
+    public function getActiveWindow(array $parameters): ?array
+    {
         $yearsAgo = max(1, (int) ($parameters['years'] ?? 10));
-        $now = new \DateTimeImmutable('now');
-        $year = (int) $now->format('Y') - $yearsAgo;
+        $year = (int) (new \DateTimeImmutable('now'))->format('Y') - $yearsAgo;
 
-        $start = new \DateTimeImmutable(sprintf('%04d-01-01 00:00:00', $year));
-        $end = new \DateTimeImmutable(sprintf('%04d-01-01 00:00:00', $year + 1));
-
-        return $this->navidrome->topTracksInWindow($start, $end, $limit);
+        return [
+            'from' => new \DateTimeImmutable(sprintf('%04d-01-01 00:00:00', $year)),
+            'to' => new \DateTimeImmutable(sprintf('%04d-01-01 00:00:00', $year + 1)),
+        ];
     }
 }

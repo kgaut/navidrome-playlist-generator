@@ -35,4 +35,17 @@ interface PlaylistGeneratorInterface
      * @return string[]
      */
     public function generate(array $parameters, int $limit): array;
+
+    /**
+     * Time window the generator operates on, or null when the generator
+     * is lifetime-based / window-less (top-all-time, never-played,
+     * songs-you-used-to-love…). When non-null, callers can use it to
+     * scope downstream queries — e.g. counting plays per track within
+     * the same window for the preview UI.
+     *
+     * @param array<string, mixed> $parameters
+     *
+     * @return array{from: \DateTimeImmutable, to: \DateTimeImmutable}|null
+     */
+    public function getActiveWindow(array $parameters): ?array;
 }

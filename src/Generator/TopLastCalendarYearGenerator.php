@@ -32,11 +32,18 @@ class TopLastCalendarYearGenerator implements PlaylistGeneratorInterface
 
     public function generate(array $parameters, int $limit): array
     {
-        $now = new \DateTimeImmutable('now');
-        $year = (int) $now->format('Y');
-        $start = new \DateTimeImmutable(sprintf('%d-01-01 00:00:00', $year - 1));
-        $end = new \DateTimeImmutable(sprintf('%d-01-01 00:00:00', $year));
+        $w = $this->getActiveWindow($parameters);
 
-        return $this->navidrome->topTracksInWindow($start, $end, $limit);
+        return $this->navidrome->topTracksInWindow($w['from'], $w['to'], $limit);
+    }
+
+    public function getActiveWindow(array $parameters): ?array
+    {
+        $year = (int) (new \DateTimeImmutable('now'))->format('Y');
+
+        return [
+            'from' => new \DateTimeImmutable(sprintf('%d-01-01 00:00:00', $year - 1)),
+            'to' => new \DateTimeImmutable(sprintf('%d-01-01 00:00:00', $year)),
+        ];
     }
 }

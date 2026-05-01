@@ -753,11 +753,16 @@ class NavidromeRepository
     /**
      * Resolve a list of media_file ids to TrackSummary[], preserving order.
      *
+     * When $from/$to are provided AND the scrobbles table exists, the
+     * `plays` field counts the scrobbles for each track inside [from, to)
+     * (the same window the playlist generator operates on). Otherwise it
+     * falls back to the lifetime annotation.play_count.
+     *
      * @param string[] $ids
      *
      * @return TrackSummary[]
      */
-    public function summarize(array $ids): array
+    public function summarize(array $ids, ?\DateTimeInterface $from = null, ?\DateTimeInterface $to = null): array
     {
         if ($ids === []) {
             return [];
@@ -765,17 +770,40 @@ class NavidromeRepository
 
         $userId = $this->resolveUserId();
         $placeholders = implode(',', array_fill(0, count($ids), '?'));
-        $sql = sprintf(
-            'SELECT mf.id, mf.title, mf.artist, mf.album, mf.duration,
-                    COALESCE(a.play_count, 0) AS plays
-             FROM media_file mf
-             LEFT JOIN annotation a
-               ON a.item_id = mf.id AND a.item_type=\'media_file\' AND a.user_id = ?
-             WHERE mf.id IN (%s)',
-            $placeholders,
-        );
+        $useWindow = $from !== null && $to !== null && $this->hasScrobblesTable();
 
-        $rows = $this->connection()->fetchAllAssociative($sql, array_merge([$userId], $ids));
+        if ($useWindow) {
+            $sql = sprintf(
+                'SELECT mf.id, mf.title, mf.artist, mf.album, mf.duration,
+                        COALESCE((SELECT COUNT(*) FROM scrobbles s
+                                  WHERE s.media_file_id = mf.id
+                                    AND s.user_id = ?
+                                    AND s.submission_time >= ?
+                                    AND s.submission_time <  ?), 0) AS plays
+                 FROM media_file mf
+                 WHERE mf.id IN (%s)',
+                $placeholders,
+            );
+            $rows = $this->connection()->fetchAllAssociative(
+                $sql,
+                array_merge([$userId, $from->getTimestamp(), $to->getTimestamp()], $ids),
+                [
+                    1 => \Doctrine\DBAL\ParameterType::INTEGER,
+                    2 => \Doctrine\DBAL\ParameterType::INTEGER,
+                ],
+            );
+        } else {
+            $sql = sprintf(
+                'SELECT mf.id, mf.title, mf.artist, mf.album, mf.duration,
+                        COALESCE(a.play_count, 0) AS plays
+                 FROM media_file mf
+                 LEFT JOIN annotation a
+                   ON a.item_id = mf.id AND a.item_type=\'media_file\' AND a.user_id = ?
+                 WHERE mf.id IN (%s)',
+                $placeholders,
+            );
+            $rows = $this->connection()->fetchAllAssociative($sql, array_merge([$userId], $ids));
+        }
         $byId = [];
         foreach ($rows as $r) {
             $byId[(string) $r['id']] = new TrackSummary(

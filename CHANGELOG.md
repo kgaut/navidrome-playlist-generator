@@ -22,7 +22,6 @@ et le projet adhère à [Semantic Versioning 2.0](https://semver.org/lang/fr/).
 - Période d'import (`date_min`, `date_max`) ajoutée aux métriques
   persistées des runs Last.fm — visible directement dans la colonne
   Métriques de l'historique et dans le dump JSON de la page détail.
-
 - Compteur de scrobbles affiché dans la card « Table scrobbles » du
   dashboard (`SELECT COUNT(*) FROM scrobbles`, formaté avec séparateur
   de milliers).
@@ -30,6 +29,20 @@ et le projet adhère à [Semantic Versioning 2.0](https://semver.org/lang/fr/).
 ### Changed
 - Page historique des runs : la colonne Métriques masque maintenant
   les valeurs nulles ou vides plutôt que d'afficher `clé=`.
+- Preview d'une playlist : la colonne « Plays » reflète désormais le
+  total d'écoutes **sur la période du générateur** (top 30 derniers
+  jours → plays sur 30 jours, etc.) au lieu du compteur lifetime.
+  Pour les générateurs sans période (`top-all-time`,
+  `never-played`, `songs-you-used-to-love`), le comportement reste
+  inchangé (lifetime, sous-titre `lifetime` ajouté pour clarté).
+
+### Internal
+- Nouvelle méthode `PlaylistGeneratorInterface::getActiveWindow()`
+  qui retourne `['from', 'to']` ou `null`. Implémentée dans les 8
+  générateurs livrés. `NavidromeRepository::summarize()` accepte
+  maintenant `?\DateTimeInterface $from, $to` ; quand fournis et que
+  la table `scrobbles` existe, le compte de plays vient de
+  `scrobbles` au lieu de `annotation.play_count`.
 
 <!--
 Sections disponibles pour les futures entrées :

@@ -47,7 +47,13 @@
                     <th class="px-3 py-2">Titre</th>
                     <th class="px-3 py-2">Artiste</th>
                     <th class="px-3 py-2">Album</th>
-                    <th class="px-3 py-2 w-20 text-right">Plays</th>
+                    <th class="px-3 py-2 w-28 text-right" title="{{ window ? 'Écoutes sur ' ~ window.from|date('Y-m-d') ~ ' → ' ~ window.to|date('Y-m-d') : 'Total des écoutes (lifetime)' }}">
+                        {% if window %}
+                            Plays<br><span class="text-[10px] font-normal text-slate-500">période</span>
+                        {% else %}
+                            Plays<br><span class="text-[10px] font-normal text-slate-500">lifetime</span>
+                        {% endif %}
+                    </th>
                     <th class="px-3 py-2 w-20 text-right">Durée</th>
                 </tr>
                 </thead>

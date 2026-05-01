@@ -42,10 +42,16 @@ class TopLastDaysGenerator implements PlaylistGeneratorInterface
 
     public function generate(array $parameters, int $limit): array
     {
+        $w = $this->getActiveWindow($parameters);
+
+        return $this->navidrome->topTracksInWindow($w['from'], $w['to'], $limit);
+    }
+
+    public function getActiveWindow(array $parameters): ?array
+    {
         $days = max(1, (int) ($parameters['days'] ?? 30));
         $now = new \DateTimeImmutable('now');
-        $from = $now->sub(new \DateInterval('P' . $days . 'D'));
 
-        return $this->navidrome->topTracksInWindow($from, $now, $limit);
+        return ['from' => $now->sub(new \DateInterval('P' . $days . 'D')), 'to' => $now];
     }
 }
