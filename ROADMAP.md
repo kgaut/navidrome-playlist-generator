@@ -64,6 +64,24 @@ l'ordre d'attaque recommandé.
 | [#7]  | Notifications cron (Discord / Slack / Pushover)                 | M      |
 | [#9]  | Webhooks sortants génériques (POST JSON après chaque run)       | M      |
 
+### UI — Miniatures album/artiste (meta [#26])
+
+Affichage de covers album et photos d'artiste partout où c'est
+pertinent (stats, wrapped, histories, playlist preview). Stratégie
+commune : proxy `/cover/*` qui tape l'API Subsonic `getCoverArt` et
+cache sur disque dans un volume Docker dédié, déduplication par
+`album_id`. Voir le meta [#26] pour la stratégie globale et l'ordre
+d'attaque (A est prérequis pour B-F).
+
+| #   | Titre                                                              | Effort |
+|-----|--------------------------------------------------------------------|--------|
+| [#27] | A. Infra : proxy + cache disque + Twig extension + volume Docker | M      |
+| [#28] | B. Miniatures sur /stats (index + compare)                      | S      |
+| [#29] | C. Miniatures sur /wrapped/{year}                               | S      |
+| [#30] | D. Miniatures sur les histories (Last.fm, Navidrome, run detail)| S      |
+| [#31] | E. Miniatures sur la preview de playlist                        | S      |
+| [#32] | F. Miniatures sur /stats/charts (légende top artistes)          | S      |
+
 ---
 
 ## En cours
@@ -112,3 +130,10 @@ quand on tagge des releases) :
 [#21]: https://github.com/kgaut/navidrome-playlist-generator/issues/21
 [#22]: https://github.com/kgaut/navidrome-playlist-generator/issues/22
 [#23]: https://github.com/kgaut/navidrome-playlist-generator/issues/23
+[#26]: https://github.com/kgaut/navidrome-playlist-generator/issues/26
+[#27]: https://github.com/kgaut/navidrome-playlist-generator/issues/27
+[#28]: https://github.com/kgaut/navidrome-playlist-generator/issues/28
+[#29]: https://github.com/kgaut/navidrome-playlist-generator/issues/29
+[#30]: https://github.com/kgaut/navidrome-playlist-generator/issues/30
+[#31]: https://github.com/kgaut/navidrome-playlist-generator/issues/31
+[#32]: https://github.com/kgaut/navidrome-playlist-generator/issues/32
