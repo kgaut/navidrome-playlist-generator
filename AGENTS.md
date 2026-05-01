@@ -26,10 +26,10 @@ courant** :
 2. **Catégoriser** avec :
    - un label de domaine : `area:lastfm`, `area:playlists`,
      `area:stats`, `area:integrations`, `area:cron`, `area:export` ;
-   - un label d'effort : `size:S` (< 1 jour), `size:M` (1-2 jours),
-     `size:L` (3+ jours) ;
-   - éventuellement `type:bug` / `type:enhancement` /
-     `type:tech-debt`.
+   - un label d'effort : `effort:S` (< 1 jour), `effort:M` (1-2 jours),
+     `effort:L` (3+ jours) ;
+   - éventuellement `bug` / `enhancement` (labels GitHub par défaut,
+     sans préfixe `type:`).
 3. **Mettre à jour [`ROADMAP.md`](ROADMAP.md)** : ajouter la ligne
    dans la table de la section `## Icebox` correspondante, avec la
    référence `[#NN]` en bas du fichier (format déjà en usage).
