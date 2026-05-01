@@ -19,6 +19,9 @@ use Symfony\Component\Form\FormEvents;
 use Symfony\Component\Form\FormInterface;
 use Symfony\Component\OptionsResolver\OptionsResolver;
 
+/**
+ * @extends AbstractType<PlaylistDefinition>
+ */
 class PlaylistDefinitionType extends AbstractType
 {
     public function __construct(private readonly GeneratorRegistry $registry)
@@ -107,7 +110,8 @@ class PlaylistDefinitionType extends AbstractType
     }
 
     /**
-     * @param array<string, mixed> $currentValues
+     * @param FormInterface<PlaylistDefinition> $form
+     * @param array<string, mixed>              $currentValues
      */
     private function addParameterFields(FormInterface $form, PlaylistGeneratorInterface $generator, array $currentValues): void
     {
