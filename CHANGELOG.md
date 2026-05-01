@@ -25,6 +25,10 @@ et le projet adhère à [Semantic Versioning 2.0](https://semver.org/lang/fr/).
 - Compteur de scrobbles affiché dans la card « Table scrobbles » du
   dashboard (`SELECT COUNT(*) FROM scrobbles`, formaté avec séparateur
   de milliers).
+- Pipeline GitLab CI (`.gitlab-ci.yml`) miroir des GitHub Actions :
+  5 jobs (phpcs, phpstan, tests matrix 8.3+8.4, docker-build,
+  docker-publish multi-arch). Pousse vers le registre du projet par
+  défaut, override via la variable `REGISTRY_IMAGE`.
 
 ### Changed
 - Page historique des runs : la colonne Métriques masque maintenant

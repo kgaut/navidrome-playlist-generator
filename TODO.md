@@ -10,4 +10,4 @@
 10. ~~Dans l'historique des import, ajoute en colonne la date-min et date-max~~
 11. ~~Sur la preview d'une playlist, la colonne `Plays` ne semble pas indiquer le total de lecture de la période concernée.~~
 12. ~~Tu peux m'ajouter une favicon (note de musique par exemple, comme pour le logo)~~
-13. Je voudrais héberger une copie de ce dépot sur mon instance gitlab, peux tu me générer un fichier .gitlab-ci.yml avec les même jobs que github actions.
+13. ~~Je voudrais héberger une copie de ce dépot sur mon instance gitlab, peux tu me générer un fichier .gitlab-ci.yml avec les même jobs que github actions.~~

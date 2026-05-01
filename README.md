@@ -25,6 +25,13 @@ Image multi-arch : `linux/amd64` + `linux/arm64`.
 docker pull ghcr.io/kgaut/navidrome-tools:latest
 ```
 
+> Pour héberger un miroir sur GitLab, le repo livre aussi un
+> [`.gitlab-ci.yml`](.gitlab-ci.yml) avec les mêmes 5 jobs (phpcs,
+> phpstan, tests matrix 8.3+8.4, docker build + publish multi-arch).
+> Par défaut il pousse vers le registre du projet
+> (`$CI_REGISTRY_IMAGE`) ; surchargez la variable `REGISTRY_IMAGE`
+> dans Settings → CI/CD pour viser une autre cible.
+
 Fonctionnalités principales :
 
 - **Système de plugins** : chaque type de playlist (« top des X derniers jours »,

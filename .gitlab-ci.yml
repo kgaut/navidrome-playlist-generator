@@ -1,0 +1,121 @@
+# GitLab CI — mirror of .github/workflows/ci.yml.
+# Five jobs: phpcs, phpstan, tests (matrix PHP 8.3 + 8.4),
+# docker-build (validation), docker-publish (multi-arch push).
+#
+# The publish job pushes to the GitLab Container Registry of the
+# current project ($CI_REGISTRY_IMAGE) by default. Override the
+# REGISTRY_IMAGE variable in the project CI/CD settings to push
+# elsewhere (e.g. ghcr.io/kgaut/navidrome-tools).
+
+stages:
+  - lint
+  - test
+  - build
+  - publish
+
+variables:
+  COMPOSER_ALLOW_SUPERUSER: "1"
+  COMPOSER_CACHE_DIR: "$CI_PROJECT_DIR/.composer-cache"
+  REGISTRY_IMAGE: "$CI_REGISTRY_IMAGE"
+
+# --------------------------------------------------------------------
+# Reusable PHP toolchain (composer + pdo_sqlite + intl) on alpine.
+# Cached on composer.lock so vendor/ survives across pipelines.
+# --------------------------------------------------------------------
+.php:
+  cache:
+    key:
+      files:
+        - composer.lock
+    paths:
+      - .composer-cache/
+      - vendor/
+  before_script:
+    - apk add --no-cache git unzip icu-dev sqlite-dev $PHPIZE_DEPS
+    - docker-php-ext-install pdo_sqlite intl
+    - curl -sSf https://getcomposer.org/installer | php -- --install-dir=/usr/local/bin --filename=composer
+    - composer install --prefer-dist --no-interaction --no-progress
+
+phpcs:
+  extends: .php
+  stage: lint
+  image: php:8.3-cli-alpine
+  script:
+    - vendor/bin/phpcs
+
+phpstan:
+  extends: .php
+  stage: lint
+  image: php:8.3-cli-alpine
+  script:
+    - vendor/bin/phpstan analyse --memory-limit=512M --no-progress
+
+tests:
+  extends: .php
+  stage: test
+  image: php:${PHP_VERSION}-cli-alpine
+  parallel:
+    matrix:
+      - PHP_VERSION: ["8.3", "8.4"]
+  script:
+    - vendor/bin/phpunit --colors=always
+
+# --------------------------------------------------------------------
+# Docker image — build only (every pipeline) then publish only on
+# pushes to main / tags v*.
+# --------------------------------------------------------------------
+docker-build:
+  stage: build
+  image: docker:24
+  services:
+    - docker:24-dind
+  variables:
+    DOCKER_HOST: tcp://docker:2375
+    DOCKER_TLS_CERTDIR: ""
+  script:
+    - docker build -t navidrome-tools:ci .
+
+docker-publish:
+  stage: publish
+  image: docker:24
+  services:
+    - docker:24-dind
+  variables:
+    DOCKER_HOST: tcp://docker:2375
+    DOCKER_TLS_CERTDIR: ""
+  needs:
+    - phpcs
+    - phpstan
+    - tests
+    - docker-build
+  rules:
+    - if: '$CI_COMMIT_BRANCH == "main"'
+    - if: '$CI_COMMIT_TAG =~ /^v\d+\.\d+\.\d+$/'
+  before_script:
+    - apk add --no-cache git
+    - echo "$CI_REGISTRY_PASSWORD" | docker login -u "$CI_REGISTRY_USER" --password-stdin "$CI_REGISTRY"
+    - docker run --rm --privileged tonistiigi/binfmt --install all
+    - docker buildx create --use --name multi
+  script:
+    - |
+      SHORT_SHA=$(echo "$CI_COMMIT_SHA" | cut -c1-7)
+      TAG_ARGS=""
+      if [ -n "$CI_COMMIT_TAG" ]; then
+        # vX.Y.Z → push X.Y.Z, X.Y, X, latest (mirrors docker/metadata-action semver pattern)
+        VERSION="${CI_COMMIT_TAG#v}"
+        MAJOR="${VERSION%%.*}"
+        REST="${VERSION#*.}"
+        MINOR="${REST%%.*}"
+        for t in "$VERSION" "$MAJOR.$MINOR" "$MAJOR" "latest"; do
+          TAG_ARGS="$TAG_ARGS -t $REGISTRY_IMAGE:$t"
+        done
+      else
+        # default branch → latest + main-<short_sha>
+        TAG_ARGS="-t $REGISTRY_IMAGE:latest -t $REGISTRY_IMAGE:main-$SHORT_SHA"
+      fi
+      echo "Pushing tags:$TAG_ARGS"
+      docker buildx build \
+        --platform linux/amd64,linux/arm64 \
+        $TAG_ARGS \
+        --push \
+        .
