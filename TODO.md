@@ -7,7 +7,7 @@
 7. ~~Mettre une pause de 10 seconde (valeur surchargeable en variable d'environement) entre le chargement de chaque page sur l'api de lastfm pour éviter de la surchager.~~
 8. ~~Pouvoir stocker en variable d'environnement son nom d'utilisateur lastfm pour éviter d'avoir à le renseigner à chaque fois.~~
 9. Lors de la génération d'un wrapped j'ai l'erreur `An exception has been thrown during the rendering of a template ("Warning: A non-numeric value encountered") in wrapped/show.html.twig at line 57.`
-10. Dans l'historique des import, ajoute en colonne la date-min et date-max
+10. ~~Dans l'historique des import, ajoute en colonne la date-min et date-max~~
 11. Sur la preview d'une playlist, la colonne `Plays` ne semble pas indiquer le total de lecture de la période concernée.
 12. ~~Tu peux m'ajouter une favicon (note de musique par exemple, comme pour le logo)~~
 13. Je voudrais héberger une copie de ce dépot sur mon instance gitlab, peux tu me générer un fichier .gitlab-ci.yml avec les même jobs que github actions.

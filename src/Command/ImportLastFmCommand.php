@@ -143,6 +143,8 @@ class ImportLastFmCommand extends Command
                     'duplicates' => $r->duplicates,
                     'unmatched' => $r->unmatched,
                     'dry_run' => $dryRun,
+                    'date_min' => $dateMin?->format('Y-m-d'),
+                    'date_max' => $dateMax?->format('Y-m-d'),
                 ],
             );
         } catch (\Throwable $e) {

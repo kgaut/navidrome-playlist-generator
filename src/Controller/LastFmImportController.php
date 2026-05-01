@@ -50,6 +50,12 @@ class LastFmImportController extends AbstractController
                 ignore_user_abort(true);
                 $user = (string) $data['lastfm_user'];
                 $isDry = (bool) ($data['dry_run'] ?? true);
+                $dateMin = $data['date_min'] instanceof \DateTimeInterface
+                    ? \DateTimeImmutable::createFromInterface($data['date_min'])
+                    : null;
+                $dateMax = $data['date_max'] instanceof \DateTimeInterface
+                    ? \DateTimeImmutable::createFromInterface($data['date_max'])
+                    : null;
                 try {
                     $report = $this->recorder->record(
                         type: RunHistory::TYPE_LASTFM_IMPORT,
@@ -58,8 +64,8 @@ class LastFmImportController extends AbstractController
                         action: fn () => $this->importer->import(
                             apiKey: $apiKey,
                             lastFmUser: $user,
-                            dateMin: $data['date_min'] instanceof \DateTimeInterface ? \DateTimeImmutable::createFromInterface($data['date_min']) : null,
-                            dateMax: $data['date_max'] instanceof \DateTimeInterface ? \DateTimeImmutable::createFromInterface($data['date_max']) : null,
+                            dateMin: $dateMin,
+                            dateMax: $dateMax,
                             toleranceSeconds: max(0, (int) ($data['tolerance'] ?? 60)),
                             dryRun: $isDry,
                             maxScrobbles: $data['max_scrobbles'] !== null ? max(1, (int) $data['max_scrobbles']) : null,
@@ -70,6 +76,8 @@ class LastFmImportController extends AbstractController
                             'duplicates' => $r->duplicates,
                             'unmatched' => $r->unmatched,
                             'dry_run' => $isDry,
+                            'date_min' => $dateMin?->format('Y-m-d'),
+                            'date_max' => $dateMax?->format('Y-m-d'),
                         ],
                     );
                 } catch (\Throwable $e) {
