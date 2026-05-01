@@ -1,0 +1,72 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Prévisualiser : {{ def.name }}{% endblock %}
+
+{% block body %}
+    <div class="mb-4">
+        <a href="{{ path('app_dashboard') }}" class="text-sm text-slate-500 hover:underline">← Retour</a>
+    </div>
+
+    <div class="flex items-start justify-between mb-4">
+        <div>
+            <h1 class="text-2xl font-semibold">{{ def.name }}</h1>
+            <p class="text-sm text-slate-500">
+                {{ generator.label }} — {{ generator.description }}
+            </p>
+            {% if def.parameters is not empty %}
+                <p class="text-xs font-mono text-slate-500 mt-1">
+                    {% for k, v in def.parameters %}{{ k }}={{ v }} {% endfor %}
+                </p>
+            {% endif %}
+            <p class="text-sm mt-2">Limite : <strong>{{ limit }}</strong></p>
+        </div>
+        <form method="post" action="{{ path('app_playlist_run', {id: def.id}) }}">
+            <input type="hidden" name="_token" value="{{ csrf_token('run' ~ def.id) }}">
+            <button type="submit" class="bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2 rounded text-sm">
+                Créer dans Navidrome
+            </button>
+        </form>
+    </div>
+
+    {% if error %}
+        <div class="bg-rose-50 border border-rose-300 text-rose-800 rounded p-4 mb-4">
+            {{ error }}
+        </div>
+    {% endif %}
+
+    {% if tracks is empty and not error %}
+        <div class="bg-amber-50 border border-amber-300 text-amber-800 rounded p-4">
+            Aucun morceau trouvé pour cette définition.
+        </div>
+    {% else %}
+        <div class="bg-white shadow rounded overflow-hidden">
+            <table class="w-full text-sm">
+                <thead class="bg-slate-100 text-slate-600 text-left">
+                <tr>
+                    <th class="px-3 py-2 w-10">#</th>
+                    <th class="px-3 py-2">Titre</th>
+                    <th class="px-3 py-2">Artiste</th>
+                    <th class="px-3 py-2">Album</th>
+                    <th class="px-3 py-2 w-20 text-right">Plays</th>
+                    <th class="px-3 py-2 w-20 text-right">Durée</th>
+                </tr>
+                </thead>
+                <tbody class="divide-y">
+                {% for t in tracks %}
+                    <tr>
+                        <td class="px-3 py-1.5 text-slate-400">{{ loop.index }}</td>
+                        <td class="px-3 py-1.5">{{ t.title }}</td>
+                        <td class="px-3 py-1.5">{{ t.artist }}</td>
+                        <td class="px-3 py-1.5 text-slate-500">{{ t.album }}</td>
+                        <td class="px-3 py-1.5 text-right">{{ t.plays }}</td>
+                        <td class="px-3 py-1.5 text-right text-slate-500">
+                            {{ (t.duration // 60) }}:{{ (t.duration % 60)|format('%02d') }}
+                        </td>
+                    </tr>
+                {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        <p class="text-xs text-slate-500 mt-2">{{ tracks|length }} morceaux.</p>
+    {% endif %}
+{% endblock %}

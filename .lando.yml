@@ -1,0 +1,77 @@
+name: navidrome-playlist-generator
+
+# Recommended Lando stack for Symfony 7 :
+#  - PHP 8.3 served via nginx
+#  - Composer 2 (required by Symfony Flex)
+#  - SQLite for both the tool's DB and the (read-only mounted) Navidrome DB,
+#    so no extra database service is needed.
+
+services:
+  appserver:
+    type: php:8.3
+    via: nginx
+    webroot: public
+    composer_version: '2'
+    xdebug: false
+    build:
+      - composer install
+    overrides:
+      environment: &app_env
+        APP_ENV: dev
+        APP_DEBUG: '1'
+        APP_SECRET: dev-secret-change-me-please-1234567890
+        NAVIDROME_DB_PATH: /app/var/navidrome.db
+        NAVIDROME_URL: http://host.lando.internal:4533
+        NAVIDROME_USER: admin
+        NAVIDROME_PASSWORD: changeme
+        APP_AUTH_USER: admin
+        APP_AUTH_PASSWORD: changeme
+        DATABASE_URL: "sqlite:///%kernel.project_dir%/var/data.db"
+
+  cron:
+    type: php:8.3
+    overrides:
+      environment: *app_env
+      command: |
+        sh -c "
+          php bin/console doctrine:migrations:migrate -n --env=dev || true;
+          php bin/console app:cron:dump --env=dev > /tmp/crontab;
+          cat /tmp/crontab;
+          /usr/local/bin/supercronic /tmp/crontab
+        "
+    build_as_root:
+      - apk add --no-cache wget || (apt-get update && apt-get install -y wget)
+      - wget -qO /usr/local/bin/supercronic https://github.com/aptible/supercronic/releases/download/v0.2.30/supercronic-linux-amd64
+      - chmod +x /usr/local/bin/supercronic
+
+tooling:
+  symfony:
+    service: appserver
+    cmd: php bin/console
+    description: Run a Symfony console command (e.g. `lando symfony cache:clear`)
+  composer:
+    service: appserver
+    cmd: composer
+  test:
+    service: appserver
+    cmd: vendor/bin/phpunit
+  migrate:
+    service: appserver
+    cmd: php bin/console doctrine:migrations:migrate -n
+    description: Run pending Doctrine migrations
+  seed:
+    service: appserver
+    cmd: php bin/console app:fixtures:seed
+    description: Insert example playlist definitions
+  playlist-run:
+    service: appserver
+    cmd: php bin/console app:playlist:run
+    description: Run one playlist (e.g. `lando playlist-run "Top 30 derniers jours" --dry-run`)
+  cron-dump:
+    service: appserver
+    cmd: php bin/console app:cron:dump
+    description: Print the supercronic-compatible crontab built from enabled definitions
+
+proxy:
+  appserver_nginx:
+    - playlist-generator.lndo.site

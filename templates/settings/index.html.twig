@@ -1,0 +1,34 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Réglages{% endblock %}
+
+{% block body %}
+    <h1 class="text-2xl font-semibold mb-4">Réglages globaux</h1>
+
+    <form method="post" class="bg-white shadow rounded p-6 max-w-xl space-y-4">
+        <input type="hidden" name="_token" value="{{ csrf_token('settings') }}">
+
+        <div>
+            <label for="default_limit" class="block text-sm font-medium mb-1">Nombre de morceaux par défaut</label>
+            <input type="number" min="1" max="1000" id="default_limit" name="default_limit"
+                   value="{{ default_limit }}" class="w-full border rounded px-3 py-2">
+            <p class="text-xs text-slate-500 mt-1">Utilisé lorsqu'une définition n'override pas la valeur.</p>
+        </div>
+
+        <div>
+            <label for="default_template" class="block text-sm font-medium mb-1">Modèle de nom par défaut</label>
+            <input type="text" id="default_template" name="default_template"
+                   value="{{ default_template }}" class="w-full border rounded px-3 py-2 font-mono text-sm">
+            <p class="text-xs text-slate-500 mt-1">
+                Variables : <code>{date}</code>, <code>{datetime}</code>, <code>{month}</code>, <code>{year}</code>,
+                <code>{label}</code>, <code>{name}</code>, <code>{preset}</code>, <code>{param:nom}</code>.
+            </p>
+        </div>
+
+        <div class="flex justify-end">
+            <button type="submit" class="px-4 py-2 text-sm rounded bg-emerald-600 hover:bg-emerald-700 text-white">
+                Enregistrer
+            </button>
+        </div>
+    </form>
+{% endblock %}

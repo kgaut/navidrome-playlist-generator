@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html lang="fr" class="h-full bg-slate-50">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}Navidrome Playlist Generator{% endblock %}</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    {% block stylesheets %}{% endblock %}
+</head>
+<body class="h-full text-slate-800">
+<div class="min-h-full flex flex-col">
+    <header class="bg-slate-900 text-slate-100">
+        <div class="max-w-6xl mx-auto px-4 py-3 flex items-center justify-between">
+            <a href="{{ path('app_dashboard') }}" class="text-lg font-semibold">
+                🎵 Navidrome Playlist Generator
+            </a>
+            <nav class="flex items-center gap-4 text-sm">
+                {% if app.user %}
+                    <a href="{{ path('app_dashboard') }}" class="hover:underline">Dashboard</a>
+                    <a href="{{ path('app_playlist_new') }}" class="hover:underline">Nouvelle playlist</a>
+                    <a href="{{ path('app_settings') }}" class="hover:underline">Réglages</a>
+                    <span class="text-slate-400">{{ app.user.userIdentifier }}</span>
+                    <a href="{{ path('app_logout') }}" class="hover:underline">Déconnexion</a>
+                {% endif %}
+            </nav>
+        </div>
+    </header>
+
+    <main class="flex-1 max-w-6xl w-full mx-auto px-4 py-6">
+        {% for type, messages in app.flashes %}
+            {% for message in messages %}
+                <div class="mb-4 px-4 py-3 rounded border
+                    {% if type == 'success' %}bg-emerald-50 border-emerald-300 text-emerald-800
+                    {% elseif type == 'error' %}bg-rose-50 border-rose-300 text-rose-800
+                    {% else %}bg-sky-50 border-sky-300 text-sky-800{% endif %}">
+                    {{ message }}
+                </div>
+            {% endfor %}
+        {% endfor %}
+
+        {% block body %}{% endblock %}
+    </main>
+
+    <footer class="text-center text-xs text-slate-500 py-4">
+        <a href="https://github.com/kgaut/navidrome-playlist-generator" class="hover:underline">github.com/kgaut/navidrome-playlist-generator</a>
+    </footer>
+</div>
+{% block javascripts %}{% endblock %}
+</body>
+</html>

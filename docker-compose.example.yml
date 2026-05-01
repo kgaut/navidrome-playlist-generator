@@ -1,0 +1,45 @@
+services:
+  playlist-generator-web:
+    image: ghcr.io/kgaut/navidrome-playlist-generator:latest
+    # build: .   # uncomment for local build
+    restart: unless-stopped
+    ports:
+      - "8080:8080"
+    environment:
+      APP_MODE: web
+      APP_ENV: prod
+      APP_SECRET: ${APP_SECRET:?set APP_SECRET in .env}
+      NAVIDROME_DB_PATH: /data/navidrome.db
+      NAVIDROME_URL: ${NAVIDROME_URL:-http://navidrome:4533}
+      NAVIDROME_USER: ${NAVIDROME_USER:-admin}
+      NAVIDROME_PASSWORD: ${NAVIDROME_PASSWORD:?set NAVIDROME_PASSWORD in .env}
+      APP_AUTH_USER: ${APP_AUTH_USER:-admin}
+      APP_AUTH_PASSWORD: ${APP_AUTH_PASSWORD:?set APP_AUTH_PASSWORD in .env}
+      DATABASE_URL: "sqlite:///%kernel.project_dir%/var/data.db"
+    volumes:
+      # Mount Navidrome's SQLite DB read-only.
+      - ${NAVIDROME_DATA_DIR:-/srv/navidrome/data}/navidrome.db:/data/navidrome.db:ro
+      # Persistent volume for the tool's own DB (playlist definitions, settings).
+      - playlist-data:/app/var
+
+  playlist-generator-cron:
+    image: ghcr.io/kgaut/navidrome-playlist-generator:latest
+    # build: .
+    restart: unless-stopped
+    environment:
+      APP_MODE: cron
+      APP_ENV: prod
+      APP_SECRET: ${APP_SECRET:?set APP_SECRET in .env}
+      NAVIDROME_DB_PATH: /data/navidrome.db
+      NAVIDROME_URL: ${NAVIDROME_URL:-http://navidrome:4533}
+      NAVIDROME_USER: ${NAVIDROME_USER:-admin}
+      NAVIDROME_PASSWORD: ${NAVIDROME_PASSWORD:?set NAVIDROME_PASSWORD in .env}
+      APP_AUTH_USER: ${APP_AUTH_USER:-admin}
+      APP_AUTH_PASSWORD: ${APP_AUTH_PASSWORD:?set APP_AUTH_PASSWORD in .env}
+      DATABASE_URL: "sqlite:///%kernel.project_dir%/var/data.db"
+    volumes:
+      - ${NAVIDROME_DATA_DIR:-/srv/navidrome/data}/navidrome.db:/data/navidrome.db:ro
+      - playlist-data:/app/var
+
+volumes:
+  playlist-data:

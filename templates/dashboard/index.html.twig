@@ -1,0 +1,128 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Dashboard{% endblock %}
+
+{% block body %}
+    <div class="flex items-start justify-between mb-6">
+        <div>
+            <h1 class="text-2xl font-semibold">Mes playlists</h1>
+            <p class="text-sm text-slate-500">
+                Limite globale par défaut : <strong>{{ default_limit }}</strong> morceaux —
+                modèle de nom : <code class="text-xs bg-slate-100 px-1">{{ default_template }}</code>
+            </p>
+        </div>
+        <a href="{{ path('app_playlist_new') }}" class="bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2 rounded text-sm">
+            + Nouvelle définition
+        </a>
+    </div>
+
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-3 mb-6 text-sm">
+        <div class="rounded border p-3 {{ health.navidrome_db ? 'bg-emerald-50 border-emerald-300' : 'bg-rose-50 border-rose-300' }}">
+            <div class="font-medium">DB Navidrome</div>
+            <div>{{ health.navidrome_db ? '✓ accessible' : '✗ inaccessible (vérifier NAVIDROME_DB_PATH)' }}</div>
+        </div>
+        <div class="rounded border p-3 {{ health.has_scrobbles ? 'bg-emerald-50 border-emerald-300' : 'bg-amber-50 border-amber-300' }}">
+            <div class="font-medium">Table <code>scrobbles</code></div>
+            <div>
+                {% if health.has_scrobbles %}
+                    ✓ présente — tops exacts
+                {% else %}
+                    ⚠ absente — fallback <code>annotation.play_date</code> (approximatif)
+                {% endif %}
+            </div>
+        </div>
+        <div class="rounded border p-3 {{ health.subsonic ? 'bg-emerald-50 border-emerald-300' : 'bg-rose-50 border-rose-300' }}">
+            <div class="font-medium">API Subsonic</div>
+            <div>{{ health.subsonic ? '✓ ping OK' : '✗ injoignable (vérifier NAVIDROME_URL/USER/PASSWORD)' }}</div>
+        </div>
+    </div>
+
+    {% if rows is empty %}
+        <div class="bg-white shadow rounded p-8 text-center text-slate-500">
+            Aucune définition. <a href="{{ path('app_playlist_new') }}" class="text-emerald-700 hover:underline">Créer la première</a>.
+        </div>
+    {% else %}
+        <div class="bg-white shadow rounded overflow-hidden">
+            <table class="w-full text-sm">
+                <thead class="bg-slate-100 text-slate-600 text-left">
+                <tr>
+                    <th class="px-3 py-2">Nom</th>
+                    <th class="px-3 py-2">Générateur</th>
+                    <th class="px-3 py-2">Planning</th>
+                    <th class="px-3 py-2">Prochain</th>
+                    <th class="px-3 py-2">Dernier run</th>
+                    <th class="px-3 py-2">Actif</th>
+                    <th class="px-3 py-2 text-right">Actions</th>
+                </tr>
+                </thead>
+                <tbody class="divide-y">
+                {% for row in rows %}
+                    {% set def = row.def %}
+                    <tr>
+                        <td class="px-3 py-2 font-medium">{{ def.name }}</td>
+                        <td class="px-3 py-2">
+                            {% if row.generator %}
+                                <span class="font-mono text-xs">{{ row.generator.label }}</span>
+                                {% if def.parameters is not empty %}
+                                    <div class="text-xs text-slate-500">
+                                        {% for k, v in def.parameters %}{{ k }}={{ v }} {% endfor %}
+                                    </div>
+                                {% endif %}
+                            {% else %}
+                                <span class="text-rose-600 text-xs">⚠ inconnu : {{ def.generatorKey }}</span>
+                            {% endif %}
+                        </td>
+                        <td class="px-3 py-2 font-mono text-xs">{{ def.schedule ?: '—' }}</td>
+                        <td class="px-3 py-2 text-xs">
+                            {{ row.next_run ? row.next_run|date('Y-m-d H:i') : '—' }}
+                        </td>
+                        <td class="px-3 py-2 text-xs">
+                            {% if def.lastRunAt %}
+                                <span class="
+                                    {% if def.lastRunStatus == 'success' %}text-emerald-700
+                                    {% elseif def.lastRunStatus == 'error' %}text-rose-700
+                                    {% else %}text-amber-700{% endif %}">
+                                    {{ def.lastRunStatus }}
+                                </span>
+                                — {{ def.lastRunAt|date('Y-m-d H:i') }}
+                                {% if def.lastRunMessage %}
+                                    <div class="text-slate-500 truncate max-w-xs" title="{{ def.lastRunMessage }}">
+                                        {{ def.lastRunMessage }}
+                                    </div>
+                                {% endif %}
+                            {% else %}
+                                <span class="text-slate-400">jamais</span>
+                            {% endif %}
+                        </td>
+                        <td class="px-3 py-2">
+                            <form method="post" action="{{ path('app_playlist_toggle', {id: def.id}) }}" class="inline">
+                                <input type="hidden" name="_token" value="{{ csrf_token('toggle' ~ def.id) }}">
+                                <button type="submit" class="text-xs px-2 py-1 rounded
+                                    {% if def.enabled %}bg-emerald-100 text-emerald-800 hover:bg-emerald-200
+                                    {% else %}bg-slate-200 text-slate-700 hover:bg-slate-300{% endif %}">
+                                    {{ def.enabled ? 'ON' : 'OFF' }}
+                                </button>
+                            </form>
+                        </td>
+                        <td class="px-3 py-2 text-right whitespace-nowrap">
+                            <a href="{{ path('app_playlist_preview', {id: def.id}) }}"
+                               class="text-sky-700 hover:underline text-xs mr-2">Prévisualiser</a>
+                            <form method="post" action="{{ path('app_playlist_run', {id: def.id}) }}" class="inline">
+                                <input type="hidden" name="_token" value="{{ csrf_token('run' ~ def.id) }}">
+                                <button type="submit" class="text-emerald-700 hover:underline text-xs mr-2">Lancer</button>
+                            </form>
+                            <a href="{{ path('app_playlist_edit', {id: def.id}) }}"
+                               class="text-slate-700 hover:underline text-xs mr-2">Éditer</a>
+                            <form method="post" action="{{ path('app_playlist_delete', {id: def.id}) }}" class="inline"
+                                  onsubmit="return confirm('Supprimer « {{ def.name }} » ?');">
+                                <input type="hidden" name="_token" value="{{ csrf_token('delete' ~ def.id) }}">
+                                <button type="submit" class="text-rose-700 hover:underline text-xs">Supprimer</button>
+                            </form>
+                        </td>
+                    </tr>
+                {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    {% endif %}
+{% endblock %}

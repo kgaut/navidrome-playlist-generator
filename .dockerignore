@@ -1,0 +1,14 @@
+.git
+.gitignore
+.github
+.idea
+.vscode
+.lando.yml
+.lando.local.yml
+var/
+vendor/
+tests/fixtures/*.db
+*.md
+docker-compose.example.yml
+.env.local
+.env.*.local

@@ -1,0 +1,109 @@
+<?php
+
+namespace App\Tests\Navidrome;
+
+use Doctrine\DBAL\Connection;
+use Doctrine\DBAL\DriverManager;
+
+/**
+ * Builds a minimal Navidrome-compatible SQLite DB on disk for tests.
+ */
+final class NavidromeFixtureFactory
+{
+    public static function createDatabase(string $path, bool $withScrobbles = true): Connection
+    {
+        if (file_exists($path)) {
+            unlink($path);
+        }
+        $conn = DriverManager::getConnection([
+            'driver' => 'pdo_sqlite',
+            'path' => $path,
+        ]);
+
+        $conn->executeStatement(<<<'SQL'
+            CREATE TABLE user (
+                id VARCHAR(255) PRIMARY KEY NOT NULL,
+                user_name VARCHAR(255) NOT NULL UNIQUE,
+                name VARCHAR(255) DEFAULT '' NOT NULL,
+                email VARCHAR(255) DEFAULT '' NOT NULL,
+                password VARCHAR(255) DEFAULT '' NOT NULL,
+                is_admin BOOL DEFAULT 0 NOT NULL,
+                last_login_at DATETIME,
+                last_access_at DATETIME,
+                created_at DATETIME NOT NULL,
+                updated_at DATETIME NOT NULL
+            )
+        SQL);
+        $conn->executeStatement(<<<'SQL'
+            CREATE TABLE media_file (
+                id VARCHAR(255) PRIMARY KEY NOT NULL,
+                title VARCHAR(255) DEFAULT '' NOT NULL,
+                album VARCHAR(255) DEFAULT '' NOT NULL,
+                artist VARCHAR(255) DEFAULT '' NOT NULL,
+                album_artist VARCHAR(255) DEFAULT '' NOT NULL,
+                album_id VARCHAR(255) DEFAULT '' NOT NULL,
+                duration INTEGER DEFAULT 0 NOT NULL,
+                year INTEGER DEFAULT 0 NOT NULL,
+                genre VARCHAR(255) DEFAULT '' NOT NULL
+            )
+        SQL);
+        $conn->executeStatement(<<<'SQL'
+            CREATE TABLE annotation (
+                ann_id VARCHAR(255) PRIMARY KEY NOT NULL,
+                user_id VARCHAR(255) DEFAULT '' NOT NULL,
+                item_id VARCHAR(255) DEFAULT '' NOT NULL,
+                item_type VARCHAR(255) DEFAULT '' NOT NULL,
+                play_count INTEGER,
+                play_date DATETIME,
+                rating INTEGER,
+                starred BOOL DEFAULT 0 NOT NULL,
+                starred_at DATETIME
+            )
+        SQL);
+
+        if ($withScrobbles) {
+            $conn->executeStatement(<<<'SQL'
+                CREATE TABLE scrobbles (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    media_file_id VARCHAR(255) NOT NULL,
+                    user_id VARCHAR(255) NOT NULL,
+                    submission_time DATETIME NOT NULL
+                )
+            SQL);
+        }
+
+        $now = (new \DateTimeImmutable())->format('Y-m-d H:i:s');
+        $conn->executeStatement(
+            "INSERT INTO user (id, user_name, name, email, password, created_at, updated_at)
+             VALUES ('user-1', 'admin', 'Admin', 'a@a', '', :now, :now)",
+            ['now' => $now]
+        );
+
+        return $conn;
+    }
+
+    public static function insertTrack(Connection $conn, string $id, string $title, string $artist = 'Artist', int $duration = 180): void
+    {
+        $conn->executeStatement(
+            'INSERT INTO media_file (id, title, artist, album, duration) VALUES (?, ?, ?, ?, ?)',
+            [$id, $title, $artist, 'Album', $duration],
+        );
+    }
+
+    public static function insertAnnotation(Connection $conn, string $userId, string $mediaId, int $playCount, string $playDate): void
+    {
+        $conn->executeStatement(
+            'INSERT INTO annotation (ann_id, user_id, item_id, item_type, play_count, play_date)
+             VALUES (?, ?, ?, ?, ?, ?)',
+            [bin2hex(random_bytes(8)), $userId, $mediaId, 'media_file', $playCount, $playDate],
+        );
+    }
+
+    public static function insertScrobble(Connection $conn, string $userId, string $mediaId, string $time): void
+    {
+        $conn->executeStatement(
+            'INSERT INTO scrobbles (media_file_id, user_id, submission_time) VALUES (?, ?, ?)',
+            [$mediaId, $userId, $time],
+        );
+    }
+}

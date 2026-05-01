@@ -1,0 +1,46 @@
+parameters:
+    navidrome.db_path: '%env(NAVIDROME_DB_PATH)%'
+    navidrome.url: '%env(NAVIDROME_URL)%'
+    navidrome.user: '%env(NAVIDROME_USER)%'
+    navidrome.password: '%env(NAVIDROME_PASSWORD)%'
+    app.auth_user: '%env(APP_AUTH_USER)%'
+    app.auth_password: '%env(APP_AUTH_PASSWORD)%'
+
+services:
+    _defaults:
+        autowire: true
+        autoconfigure: true
+        public: false
+        bind:
+            $projectDir: '%kernel.project_dir%'
+
+    _instanceof:
+        App\Generator\PlaylistGeneratorInterface:
+            tags: ['app.playlist_generator']
+
+    App\:
+        resource: '../src/'
+        exclude:
+            - '../src/DependencyInjection/'
+            - '../src/Entity/'
+            - '../src/Kernel.php'
+
+    App\Generator\GeneratorRegistry:
+        arguments:
+            $generators: !tagged_iterator app.playlist_generator
+
+    App\Navidrome\NavidromeRepository:
+        arguments:
+            $dbPath: '%navidrome.db_path%'
+            $userName: '%navidrome.user%'
+
+    App\Subsonic\SubsonicClient:
+        arguments:
+            $baseUrl: '%navidrome.url%'
+            $user: '%navidrome.user%'
+            $password: '%navidrome.password%'
+
+    App\Security\EnvUserProvider:
+        arguments:
+            $username: '%app.auth_user%'
+            $plainPassword: '%app.auth_password%'

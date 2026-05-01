@@ -1,0 +1,54 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}{{ is_new ? 'Nouvelle définition' : 'Éditer ' ~ def.name }}{% endblock %}
+
+{% block body %}
+    <div class="mb-4">
+        <a href="{{ path('app_dashboard') }}" class="text-sm text-slate-500 hover:underline">← Retour</a>
+    </div>
+
+    <h1 class="text-2xl font-semibold mb-4">
+        {{ is_new ? 'Nouvelle définition' : 'Éditer « ' ~ def.name ~ ' »' }}
+    </h1>
+
+    {% if not is_new %}
+        <p class="text-xs text-slate-500 mb-4">
+            Si vous changez le générateur, enregistrez d'abord pour voir apparaître ses paramètres.
+        </p>
+    {% endif %}
+
+    <div class="bg-white shadow rounded p-6 max-w-2xl">
+        {{ form_start(form, {attr: {class: 'space-y-4'}}) }}
+            {{ form_row(form.name) }}
+            {{ form_row(form.generatorKey) }}
+
+            {% if form._params is defined %}
+                <div class="border-t pt-4">
+                    <h3 class="font-medium mb-3">Paramètres</h3>
+                    <div class="space-y-3">
+                        {% for child in form._params %}
+                            {{ form_row(child) }}
+                        {% endfor %}
+                    </div>
+                </div>
+            {% endif %}
+
+            <div class="border-t pt-4 grid grid-cols-1 md:grid-cols-2 gap-4">
+                {{ form_row(form.limitOverride) }}
+                {{ form_row(form.playlistNameTemplate) }}
+                {{ form_row(form.schedule) }}
+                <div class="space-y-2">
+                    {{ form_row(form.enabled) }}
+                    {{ form_row(form.replaceExisting) }}
+                </div>
+            </div>
+
+            <div class="flex justify-end gap-2 pt-4 border-t">
+                <a href="{{ path('app_dashboard') }}" class="px-4 py-2 text-sm rounded border">Annuler</a>
+                <button type="submit" class="px-4 py-2 text-sm rounded bg-emerald-600 hover:bg-emerald-700 text-white">
+                    {{ is_new ? 'Créer' : 'Enregistrer' }}
+                </button>
+            </div>
+        {{ form_end(form) }}
+    </div>
+{% endblock %}
