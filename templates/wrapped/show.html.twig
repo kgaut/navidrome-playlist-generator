@@ -53,6 +53,17 @@
             </div>
         </section>
 
+        {# ---------- "+ Nouvelle playlist" button ---------- #}
+        {% set yearsAgo = ('now'|date('Y')|number_format(0)) - year %}
+        {% if yearsAgo > 0 %}
+            <div class="mb-6">
+                <a href="{{ path('app_playlist_new', {generator_key: 'top-years-ago', 'parameters[years]': yearsAgo, name: 'Top ' ~ year}) }}"
+                   class="inline-flex items-center gap-2 text-xs px-3 py-1.5 rounded bg-emerald-50 border border-emerald-300 text-emerald-800 hover:bg-emerald-100">
+                    + Créer une playlist « Top {{ year }} »
+                </a>
+            </div>
+        {% endif %}
+
         <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
             <div class="bg-white shadow rounded p-5">
                 <div class="text-xs uppercase text-slate-500">Plus longue série</div>

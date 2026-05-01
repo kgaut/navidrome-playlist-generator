@@ -34,6 +34,29 @@
     {% endif %}
 
     {% if result %}
+        {# Helper macro for the "+ Nouvelle playlist" link, period-aware #}
+        {% macro newPlaylistLink(period, label) %}
+            {% set args = null %}
+            {% if period == '7d' %}
+                {% set args = {generator_key: 'top-last-days', 'parameters[days]': 7, name: 'Top 7 derniers jours'} %}
+            {% elseif period == '30d' %}
+                {% set args = {generator_key: 'top-last-days', 'parameters[days]': 30, name: 'Top 30 derniers jours'} %}
+            {% elseif period == 'last-month' %}
+                {% set args = {generator_key: 'top-last-month', name: 'Top mois passé'} %}
+            {% elseif period == 'last-year' %}
+                {% set args = {generator_key: 'top-last-year', name: 'Top année passée'} %}
+            {% elseif period == 'all-time' %}
+                {% set args = {generator_key: 'top-all-time', name: 'Top all-time'} %}
+            {% endif %}
+            {% if args %}
+                <a href="{{ path('app_playlist_new', args) }}"
+                   class="inline-flex items-center gap-1 text-xs px-2 py-1 rounded bg-emerald-50 border border-emerald-300 text-emerald-800 hover:bg-emerald-100 mt-2">
+                    + Playlist depuis « {{ label }} »
+                </a>
+            {% endif %}
+        {% endmacro %}
+        {% import _self as nav %}
+
         {# Summary cards #}
         <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
             {% for snap in [result.period1, result.period2] %}
@@ -49,6 +72,7 @@
                             <div class="text-xs text-slate-500">morceaux distincts</div>
                         </div>
                     </div>
+                    {{ nav.newPlaylistLink(snap.period, snap.label) }}
                 </div>
             {% endfor %}
         </div>

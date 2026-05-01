@@ -33,6 +33,29 @@
         </form>
     </div>
 
+    {# ---------- "+ Nouvelle playlist" button (period-aware) ---------- #}
+    {% set newPlaylistArgs = null %}
+    {% if period == '7d' %}
+        {% set newPlaylistArgs = {generator_key: 'top-last-days', 'parameters[days]': 7, name: 'Top 7 derniers jours'} %}
+    {% elseif period == '30d' %}
+        {% set newPlaylistArgs = {generator_key: 'top-last-days', 'parameters[days]': 30, name: 'Top 30 derniers jours'} %}
+    {% elseif period == 'last-month' %}
+        {% set newPlaylistArgs = {generator_key: 'top-last-month', name: 'Top mois passé'} %}
+    {% elseif period == 'last-year' %}
+        {% set newPlaylistArgs = {generator_key: 'top-last-year', name: 'Top année passée'} %}
+    {% elseif period == 'all-time' %}
+        {% set newPlaylistArgs = {generator_key: 'top-all-time', name: 'Top all-time'} %}
+    {% endif %}
+
+    {% if newPlaylistArgs %}
+        <div class="mb-6">
+            <a href="{{ path('app_playlist_new', newPlaylistArgs) }}"
+               class="inline-flex items-center gap-2 text-xs px-3 py-1.5 rounded bg-emerald-50 border border-emerald-300 text-emerald-800 hover:bg-emerald-100">
+                <span>+ Créer une playlist depuis ce top</span>
+            </a>
+        </div>
+    {% endif %}
+
     {% if stale %}
         <div class="bg-amber-50 border border-amber-300 text-amber-800 rounded p-4 mb-6 text-sm">
             Aucune donnée en cache pour cette période. Cliquez sur <strong>Rafraîchir</strong> pour la calculer.
