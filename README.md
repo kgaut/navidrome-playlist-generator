@@ -271,6 +271,24 @@ Le service :
 3. Si Lidarr répond que l'artiste existe déjà, l'UI affiche un flash
    info (« déjà présent ») au lieu d'une erreur.
 
+## Historique des runs cron
+
+Tous les jobs longs sont audités dans la table locale `run_history`.
+La page `/history` (lien dans la nav) liste les exécutions avec :
+
+- type (`playlist`, `stats`, `lastfm-import`),
+- libellé humain,
+- statut (✓ success / ✗ error / skipped) avec badge coloré,
+- date de démarrage et durée,
+- métriques (par exemple `tracks=50`, `inserted=237`, `unmatched=42`),
+- bouton « Détails » pour le message complet et le JSON metrics.
+
+Filtres par type/statut + recherche libre + pagination (50/page).
+
+Une commande `app:history:purge` supprime les entrées plus vieilles que
+`RUN_HISTORY_RETENTION_DAYS` (défaut 90). Elle est ajoutée
+automatiquement au crontab par `app:cron:dump` (1×/jour à 4h30).
+
 ## Qualité de code et tests
 
 Le projet utilise PHPUnit, PHPStan et PHP_CodeSniffer (PSR-12). Les

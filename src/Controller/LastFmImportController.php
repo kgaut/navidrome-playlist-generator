@@ -2,11 +2,13 @@
 
 namespace App\Controller;
 
+use App\Entity\RunHistory;
 use App\Form\LastFmImportType;
 use App\LastFm\ImportReport;
 use App\LastFm\LastFmImporter;
 use App\Lidarr\LidarrConfig;
 use App\Navidrome\NavidromeRepository;
+use App\Service\RunHistoryRecorder;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\HttpFoundation\Response;
@@ -18,6 +20,7 @@ class LastFmImportController extends AbstractController
         private readonly LastFmImporter $importer,
         private readonly LidarrConfig $lidarrConfig,
         private readonly NavidromeRepository $navidrome,
+        private readonly RunHistoryRecorder $recorder,
         private readonly string $navidromeUrl,
     ) {
     }
@@ -44,15 +47,29 @@ class LastFmImportController extends AbstractController
             } else {
                 set_time_limit(0);
                 ignore_user_abort(true);
+                $user = (string) $data['lastfm_user'];
+                $isDry = (bool) ($data['dry_run'] ?? true);
                 try {
-                    $report = $this->importer->import(
-                        apiKey: $apiKey,
-                        lastFmUser: (string) $data['lastfm_user'],
-                        dateMin: $data['date_min'] instanceof \DateTimeInterface ? \DateTimeImmutable::createFromInterface($data['date_min']) : null,
-                        dateMax: $data['date_max'] instanceof \DateTimeInterface ? \DateTimeImmutable::createFromInterface($data['date_max']) : null,
-                        toleranceSeconds: max(0, (int) ($data['tolerance'] ?? 60)),
-                        dryRun: (bool) ($data['dry_run'] ?? true),
-                        maxScrobbles: $data['max_scrobbles'] !== null ? max(1, (int) $data['max_scrobbles']) : null,
+                    $report = $this->recorder->record(
+                        type: RunHistory::TYPE_LASTFM_IMPORT,
+                        reference: $user,
+                        label: 'Last.fm import — ' . $user . ($isDry ? ' [dry-run]' : ''),
+                        action: fn () => $this->importer->import(
+                            apiKey: $apiKey,
+                            lastFmUser: $user,
+                            dateMin: $data['date_min'] instanceof \DateTimeInterface ? \DateTimeImmutable::createFromInterface($data['date_min']) : null,
+                            dateMax: $data['date_max'] instanceof \DateTimeInterface ? \DateTimeImmutable::createFromInterface($data['date_max']) : null,
+                            toleranceSeconds: max(0, (int) ($data['tolerance'] ?? 60)),
+                            dryRun: $isDry,
+                            maxScrobbles: $data['max_scrobbles'] !== null ? max(1, (int) $data['max_scrobbles']) : null,
+                        ),
+                        extractMetrics: static fn (ImportReport $r) => [
+                            'fetched' => $r->fetched,
+                            'inserted' => $r->inserted,
+                            'duplicates' => $r->duplicates,
+                            'unmatched' => $r->unmatched,
+                            'dry_run' => $isDry,
+                        ],
                     );
                 } catch (\Throwable $e) {
                     $error = $e->getMessage();

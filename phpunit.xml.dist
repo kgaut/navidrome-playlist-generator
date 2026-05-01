@@ -25,6 +25,7 @@
         <env name="LIDARR_QUALITY_PROFILE_ID" value="1"/>
         <env name="LIDARR_METADATA_PROFILE_ID" value="1"/>
         <env name="LIDARR_MONITOR" value="all"/>
+        <env name="RUN_HISTORY_RETENTION_DAYS" value="90"/>
     </php>
 
     <testsuites>

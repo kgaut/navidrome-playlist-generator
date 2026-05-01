@@ -1,0 +1,40 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Détails du run #{{ entry.id }}{% endblock %}
+
+{% block body %}
+    <div class="mb-4">
+        <a href="{{ path('app_history') }}" class="text-sm text-slate-500 hover:underline">← Retour à l'historique</a>
+    </div>
+
+    <h1 class="text-2xl font-semibold mb-4">Run #{{ entry.id }} — {{ entry.label }}</h1>
+
+    <div class="bg-white shadow rounded p-6 max-w-3xl space-y-3 text-sm">
+        <div><strong>Type :</strong> <span class="font-mono">{{ entry.type }}</span></div>
+        <div><strong>Référence :</strong> <span class="font-mono">{{ entry.reference }}</span></div>
+        <div>
+            <strong>Statut :</strong>
+            {% set badge = entry.status == 'success' ? 'bg-emerald-100 text-emerald-800'
+                : entry.status == 'error' ? 'bg-rose-100 text-rose-800'
+                : 'bg-amber-100 text-amber-800' %}
+            <span class="text-xs px-2 py-0.5 rounded {{ badge }}">{{ entry.status }}</span>
+        </div>
+        <div><strong>Démarré :</strong> {{ entry.startedAt|date('Y-m-d H:i:s') }}</div>
+        <div><strong>Terminé :</strong> {% if entry.finishedAt %}{{ entry.finishedAt|date('Y-m-d H:i:s') }}{% else %}—{% endif %}</div>
+        <div><strong>Durée :</strong> {% if entry.durationMs is not null %}{{ (entry.durationMs / 1000)|number_format(3) }}s{% else %}—{% endif %}</div>
+
+        {% if entry.metrics %}
+            <div>
+                <strong>Métriques :</strong>
+                <pre class="mt-1 bg-slate-100 rounded p-3 text-xs overflow-x-auto">{{ entry.metrics|json_encode(constant('JSON_PRETTY_PRINT')) }}</pre>
+            </div>
+        {% endif %}
+
+        {% if entry.message %}
+            <div>
+                <strong>Message :</strong>
+                <pre class="mt-1 bg-slate-100 rounded p-3 text-xs overflow-x-auto whitespace-pre-wrap">{{ entry.message }}</pre>
+            </div>
+        {% endif %}
+    </div>
+{% endblock %}

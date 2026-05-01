@@ -2,8 +2,11 @@
 
 namespace App\Command;
 
+use App\Entity\RunHistory;
 use App\Repository\PlaylistDefinitionRepository;
 use App\Service\PlaylistRunner;
+use App\Service\RunHistoryRecorder;
+use App\Service\RunResult;
 use Cron\CronExpression;
 use Symfony\Component\Console\Attribute\AsCommand;
 use Symfony\Component\Console\Command\Command;
@@ -21,6 +24,7 @@ class RunAllPlaylistsCommand extends Command
     public function __construct(
         private readonly PlaylistDefinitionRepository $repository,
         private readonly PlaylistRunner $runner,
+        private readonly RunHistoryRecorder $recorder,
     ) {
         parent::__construct();
     }
@@ -62,7 +66,16 @@ class RunAllPlaylistsCommand extends Command
             }
 
             try {
-                $result = $this->runner->run($def);
+                $result = $this->recorder->record(
+                    type: RunHistory::TYPE_PLAYLIST,
+                    reference: (string) $def->getId(),
+                    label: $def->getName(),
+                    action: fn () => $this->runner->run($def),
+                    extractMetrics: static fn (RunResult $r) => [
+                        'tracks' => $r->trackCount,
+                        'playlist_id' => $r->playlistId,
+                    ],
+                );
                 $io->writeln(sprintf(
                     '<info>OK</info> %s → %d tracks',
                     $result->playlistName,

@@ -34,6 +34,7 @@ services:
         LIDARR_QUALITY_PROFILE_ID: 1
         LIDARR_METADATA_PROFILE_ID: 1
         LIDARR_MONITOR: all
+        RUN_HISTORY_RETENTION_DAYS: '90'
 
   cron:
     type: php:8.3

@@ -2,6 +2,9 @@
 
 namespace App\Command;
 
+use App\Entity\RunHistory;
+use App\Entity\StatsSnapshot;
+use App\Service\RunHistoryRecorder;
 use App\Service\StatsService;
 use Symfony\Component\Console\Attribute\AsCommand;
 use Symfony\Component\Console\Command\Command;
@@ -16,8 +19,10 @@ use Symfony\Component\Console\Style\SymfonyStyle;
 )]
 class ComputeStatsCommand extends Command
 {
-    public function __construct(private readonly StatsService $stats)
-    {
+    public function __construct(
+        private readonly StatsService $stats,
+        private readonly RunHistoryRecorder $recorder,
+    ) {
         parent::__construct();
     }
 
@@ -40,7 +45,16 @@ class ComputeStatsCommand extends Command
         if ($period !== null) {
             $period = (string) $period;
             try {
-                $snapshot = $this->stats->compute($period);
+                $snapshot = $this->recorder->record(
+                    type: RunHistory::TYPE_STATS,
+                    reference: $period,
+                    label: 'Stats — ' . $period,
+                    action: fn () => $this->stats->compute($period),
+                    extractMetrics: static fn (StatsSnapshot $s) => [
+                        'total_plays' => $s->getData()['total_plays'],
+                        'distinct_tracks' => $s->getData()['distinct_tracks'],
+                    ],
+                );
                 $io->success(sprintf(
                     'Period "%s" computed: %d plays, %d distinct tracks.',
                     $period,
@@ -56,7 +70,25 @@ class ComputeStatsCommand extends Command
             }
         }
 
-        [$snapshots, $errors] = $this->stats->computeAll();
+        $snapshots = [];
+        $errors = [];
+        foreach (array_keys(StatsService::periods()) as $p) {
+            try {
+                $snapshot = $this->recorder->record(
+                    type: RunHistory::TYPE_STATS,
+                    reference: $p,
+                    label: 'Stats — ' . $p,
+                    action: fn () => $this->stats->compute($p),
+                    extractMetrics: static fn (StatsSnapshot $s) => [
+                        'total_plays' => $s->getData()['total_plays'],
+                        'distinct_tracks' => $s->getData()['distinct_tracks'],
+                    ],
+                );
+                $snapshots[] = $snapshot;
+            } catch (\Throwable $e) {
+                $errors[] = sprintf('%s: %s', $p, $e->getMessage());
+            }
+        }
 
         foreach ($snapshots as $snapshot) {
             $io->writeln(sprintf(

@@ -2,8 +2,11 @@
 
 namespace App\Command;
 
+use App\Entity\RunHistory;
 use App\Repository\PlaylistDefinitionRepository;
 use App\Service\PlaylistRunner;
+use App\Service\RunHistoryRecorder;
+use App\Service\RunResult;
 use Symfony\Component\Console\Attribute\AsCommand;
 use Symfony\Component\Console\Command\Command;
 use Symfony\Component\Console\Input\InputArgument;
@@ -21,6 +24,7 @@ class RunPlaylistCommand extends Command
     public function __construct(
         private readonly PlaylistDefinitionRepository $repository,
         private readonly PlaylistRunner $runner,
+        private readonly RunHistoryRecorder $recorder,
     ) {
         parent::__construct();
     }
@@ -52,11 +56,23 @@ class RunPlaylistCommand extends Command
             return Command::SUCCESS;
         }
 
+        $dryRun = (bool) $input->getOption('dry-run');
+
         try {
-            $result = $this->runner->run($def, (bool) $input->getOption('dry-run'));
+            $result = $this->recorder->record(
+                type: RunHistory::TYPE_PLAYLIST,
+                reference: (string) $def->getId(),
+                label: $def->getName(),
+                action: fn () => $this->runner->run($def, $dryRun),
+                extractMetrics: static fn (RunResult $r) => [
+                    'tracks' => $r->trackCount,
+                    'playlist_id' => $r->playlistId,
+                    'dry_run' => $dryRun,
+                ],
+            );
             $io->success(sprintf(
                 '%s "%s" → %d tracks (id=%s)',
-                $input->getOption('dry-run') ? '[DRY-RUN]' : 'Created',
+                $dryRun ? '[DRY-RUN]' : 'Created',
                 $result->playlistName,
                 $result->trackCount,
                 $result->playlistId,

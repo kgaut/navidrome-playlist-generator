@@ -2,7 +2,10 @@
 
 namespace App\Command;
 
+use App\Entity\RunHistory;
+use App\LastFm\ImportReport;
 use App\LastFm\LastFmImporter;
+use App\Service\RunHistoryRecorder;
 use Symfony\Component\Console\Attribute\AsCommand;
 use Symfony\Component\Console\Command\Command;
 use Symfony\Component\Console\Input\InputArgument;
@@ -19,6 +22,7 @@ class ImportLastFmCommand extends Command
 {
     public function __construct(
         private readonly LastFmImporter $importer,
+        private readonly RunHistoryRecorder $recorder,
     ) {
         parent::__construct();
     }
@@ -104,23 +108,36 @@ class ImportLastFmCommand extends Command
 
         try {
             $maxScrobbles = $input->getOption('max-scrobbles');
-            $report = $this->importer->import(
-                apiKey: $apiKey,
-                lastFmUser: $user,
-                dateMin: $dateMin,
-                dateMax: $dateMax,
-                toleranceSeconds: $tolerance,
-                dryRun: $dryRun,
-                progress: function (int $f, int $i, int $d, int $u) use ($io): void {
-                    $io->writeln(sprintf(
-                        '  fetched=%d  inserted=%d  duplicates=%d  unmatched=%d',
-                        $f,
-                        $i,
-                        $d,
-                        $u,
-                    ));
-                },
-                maxScrobbles: $maxScrobbles !== null ? max(1, (int) $maxScrobbles) : null,
+            $maxScrobblesInt = $maxScrobbles !== null ? max(1, (int) $maxScrobbles) : null;
+            $report = $this->recorder->record(
+                type: RunHistory::TYPE_LASTFM_IMPORT,
+                reference: $user,
+                label: 'Last.fm import — ' . $user . ($dryRun ? ' [dry-run]' : ''),
+                action: fn () => $this->importer->import(
+                    apiKey: $apiKey,
+                    lastFmUser: $user,
+                    dateMin: $dateMin,
+                    dateMax: $dateMax,
+                    toleranceSeconds: $tolerance,
+                    dryRun: $dryRun,
+                    progress: function (int $f, int $i, int $d, int $u) use ($io): void {
+                        $io->writeln(sprintf(
+                            '  fetched=%d  inserted=%d  duplicates=%d  unmatched=%d',
+                            $f,
+                            $i,
+                            $d,
+                            $u,
+                        ));
+                    },
+                    maxScrobbles: $maxScrobblesInt,
+                ),
+                extractMetrics: static fn (ImportReport $r) => [
+                    'fetched' => $r->fetched,
+                    'inserted' => $r->inserted,
+                    'duplicates' => $r->duplicates,
+                    'unmatched' => $r->unmatched,
+                    'dry_run' => $dryRun,
+                ],
             );
         } catch (\Throwable $e) {
             $io->error($e->getMessage());

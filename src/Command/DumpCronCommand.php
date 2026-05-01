@@ -66,6 +66,10 @@ class DumpCronCommand extends Command
             }
         }
 
+        $output->writeln('');
+        $output->writeln('# Daily purge of run_history older than RUN_HISTORY_RETENTION_DAYS');
+        $output->writeln(sprintf('30 4 * * * php %s app:history:purge', $bin));
+
         return Command::SUCCESS;
     }
 }
