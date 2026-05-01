@@ -37,6 +37,13 @@ et le projet adhère à [Semantic Versioning 2.0](https://semver.org/lang/fr/).
   dans la nouvelle table `lastfm_history` (migration
   `Version20260501300000`). Run audité dans `RunHistory` avec la
   référence `history:<user>`.
+- Page **Historique Navidrome** (`/stats/navidrome-history`), pendant
+  symétrique de la précédente : snapshot des 100 derniers scrobbles
+  de la table `scrobbles` Navidrome, joins media_file pour artiste/
+  titre/album, lien direct vers la fiche Navidrome de chaque
+  morceau. Cache dans `navidrome_history` (migration
+  `Version20260501400000`), refresh atomique. Nouveau helper
+  `NavidromeRepository::getRecentScrobbles(int $limit)`.
 
 ### Changed
 - Page historique des runs : la colonne Métriques masque maintenant

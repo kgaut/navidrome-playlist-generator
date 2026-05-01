@@ -29,6 +29,41 @@ class NavidromeRepository
     }
 
     /**
+     * Most recent scrobbles for the configured user, joined with media_file
+     * to expose artist/title/album. Returns an empty array when the
+     * scrobbles table does not exist (Navidrome < 0.55).
+     *
+     * @return list<array{media_file_id: string, played_at: \DateTimeImmutable, artist: string, title: string, album: string}>
+     */
+    public function getRecentScrobbles(int $limit): array
+    {
+        if (!$this->hasScrobblesTable()) {
+            return [];
+        }
+
+        $userId = $this->resolveUserId();
+        $rows = $this->connection()->fetchAllAssociative(
+            'SELECT s.media_file_id AS id, s.submission_time AS ts,
+                    mf.artist AS artist, mf.title AS title, mf.album AS album
+             FROM scrobbles s
+             LEFT JOIN media_file mf ON mf.id = s.media_file_id
+             WHERE s.user_id = :uid
+             ORDER BY s.submission_time DESC
+             LIMIT :lim',
+            ['uid' => $userId, 'lim' => $limit],
+            ['lim' => \Doctrine\DBAL\ParameterType::INTEGER],
+        );
+
+        return array_map(static fn (array $r): array => [
+            'media_file_id' => (string) $r['id'],
+            'played_at' => (new \DateTimeImmutable('@' . (int) $r['ts']))->setTimezone(new \DateTimeZone(date_default_timezone_get())),
+            'artist' => (string) ($r['artist'] ?? ''),
+            'title' => (string) ($r['title'] ?? ''),
+            'album' => (string) ($r['album'] ?? ''),
+        ], $rows);
+    }
+
+    /**
      * Total number of rows in the Navidrome `scrobbles` table for any user.
      * Returns 0 when the table does not exist (Navidrome < 0.55).
      */

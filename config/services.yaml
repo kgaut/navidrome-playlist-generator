@@ -75,6 +75,10 @@ services:
         arguments:
             $navidromeUrl: '%navidrome.url%'
 
+    App\Controller\NavidromeHistoryController:
+        arguments:
+            $navidromeUrl: '%navidrome.url%'
+
     App\LastFm\LastFmClient:
         arguments:
             $pageDelaySeconds: '%lastfm.page_delay_seconds%'
