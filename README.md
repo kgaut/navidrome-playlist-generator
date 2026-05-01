@@ -406,6 +406,11 @@ L'option « remplacer la playlist existante » utilise
 `getPlaylists.view` + `deletePlaylist.view` pour retirer l'ancienne du
 même nom appartenant au même utilisateur, puis recrée la nouvelle.
 
+## Changelog
+
+L'historique des évolutions est tenu dans [`CHANGELOG.md`](CHANGELOG.md)
+au format [Keep a Changelog](https://keepachangelog.com/fr/1.1.0/).
+
 ## Licence
 
 MIT.

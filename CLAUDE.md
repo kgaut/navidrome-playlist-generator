@@ -205,10 +205,18 @@ Permissions du workflow : `contents: read`, `packages: write`.
 
 ### Release
 
-```bash
-git checkout main && git pull
-git tag v0.X.0 && git push origin v0.X.0
-```
+1. S'assurer que `CHANGELOG.md` a une section `[Unreleased]` non vide qui
+   couvre tout ce qui sera dans le tag.
+2. Renommer `## [Unreleased]` en `## [X.Y.Z] - YYYY-MM-DD` et insérer un
+   nouveau bloc `## [Unreleased]` vide juste au-dessus.
+3. Commit `chore(release): vX.Y.Z` puis :
+
+   ```bash
+   git checkout main && git pull
+   git tag v0.X.0 && git push origin v0.X.0
+   ```
+
+Le push du tag déclenche `docker-publish` (cf. `.github/workflows/ci.yml`).
 
 ---
 
@@ -288,6 +296,8 @@ Il reste :
   main (l'utilisateur veut l'historique linéaire).
 - Toujours mettre à jour `README.md` quand on ajoute une feature
   utilisateur ou une variable d'env.
+- Toute feature/fix utilisateur ajoute une entrée sous `## [Unreleased]`
+  dans `CHANGELOG.md` (Added / Changed / Fixed / etc. selon le cas).
 - Les nouvelles env vars doivent être déclarées dans **les 5 endroits**
   (`.env`, `.env.dist`, `phpunit.xml.dist`, `.lando.yml.dist`,
   `docker-compose.example.yml`) plus dans `config/services.yaml`.
