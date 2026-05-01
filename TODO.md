@@ -5,3 +5,4 @@
 4. Mettre une pause de 10 seconde (valeur surchargeable en variable d'environement) entre le chargement de chaque page sur l'api de lastfm pour éviter de la surchager.
 5. Pouvoir stocker en variable d'environnement son nom d'utilisateur lastfm pour éviter d'avoir à le renseigner à chaque fois.
 6. Lors de la génération d'un wrapped j'ai l'erreur `An exception has been thrown during the rendering of a template ("Warning: A non-numeric value encountered") in wrapped/show.html.twig at line 57.`
+7. Lors de l'import lastfm, le matching semble ne pas fonctionner, sur toute l'année 2026, il ne me trouve aucune correspondance.
