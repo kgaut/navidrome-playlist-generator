@@ -1,0 +1,129 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Graphiques d'écoute{% endblock %}
+
+{% block stylesheets %}
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+{% endblock %}
+
+{% block body %}
+    <div class="flex items-start justify-between mb-4 flex-wrap gap-3">
+        <h1 class="text-2xl font-semibold">Graphiques d'écoute</h1>
+        <a href="{{ path('app_stats') }}" class="text-sm text-slate-500 hover:underline">← Vue d'ensemble</a>
+    </div>
+
+    {% if not has_scrobbles %}
+        <div class="bg-amber-50 border border-amber-300 text-amber-800 rounded p-4 mb-6 text-sm">
+            La table <code>scrobbles</code> de Navidrome est introuvable. Les graphiques nécessitent Navidrome ≥ 0.55.
+        </div>
+    {% endif %}
+
+    <form method="get" class="bg-white shadow rounded p-4 mb-6 flex flex-wrap items-end gap-3">
+        <div>
+            <label class="block text-xs uppercase text-slate-500" for="months">Fenêtre (mois)</label>
+            <select name="months" id="months" class="border rounded px-2 py-1 text-sm" onchange="this.form.submit()">
+                {% for m in allowed_months %}
+                    <option value="{{ m }}" {{ m == months ? 'selected' : '' }}>{{ m }} mois</option>
+                {% endfor %}
+            </select>
+        </div>
+    </form>
+
+    <div class="grid grid-cols-1 gap-6">
+        <div class="bg-white shadow rounded p-5">
+            <h2 class="font-semibold text-sm mb-3">Écoutes par mois ({{ months }} mois)</h2>
+            <div class="h-64">
+                <canvas id="chart-plays-month"></canvas>
+            </div>
+        </div>
+
+        <div class="bg-white shadow rounded p-5">
+            <h2 class="font-semibold text-sm mb-3">Top 5 artistes au fil du temps</h2>
+            <div class="h-72">
+                <canvas id="chart-top-artists"></canvas>
+            </div>
+        </div>
+
+        <div class="bg-white shadow rounded p-5">
+            <h2 class="font-semibold text-sm mb-3">Distribution par jour de la semaine (90 derniers jours)</h2>
+            <div class="h-64">
+                <canvas id="chart-dow"></canvas>
+            </div>
+        </div>
+    </div>
+{% endblock %}
+
+{% block javascripts %}
+    <script>
+        (function () {
+            const playsMonthly = {{ plays_by_month|json_encode|raw }};
+            const topArtists = {{ top_artists|json_encode|raw }};
+            const dayLabels = {{ day_labels|json_encode|raw }};
+            const dayValues = {{ day_values|json_encode|raw }};
+
+            if (typeof Chart === 'undefined') {
+                return;
+            }
+
+            // Chart 1: plays per month (bar)
+            new Chart(document.getElementById('chart-plays-month'), {
+                type: 'bar',
+                data: {
+                    labels: playsMonthly.map(r => r.month),
+                    datasets: [{
+                        label: 'Écoutes',
+                        data: playsMonthly.map(r => r.plays),
+                        backgroundColor: 'rgba(16, 185, 129, 0.7)',
+                        borderRadius: 4,
+                    }],
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: { legend: { display: false } },
+                },
+            });
+
+            // Chart 2: top artists timeline (line, multi-series)
+            const palette = ['#10b981', '#3b82f6', '#f59e0b', '#ef4444', '#8b5cf6'];
+            new Chart(document.getElementById('chart-top-artists'), {
+                type: 'line',
+                data: {
+                    labels: topArtists.length ? topArtists[0].series.map(s => s.month) : [],
+                    datasets: topArtists.map((a, i) => ({
+                        label: a.artist + ' (' + a.total + ')',
+                        data: a.series.map(s => s.plays),
+                        borderColor: palette[i % palette.length],
+                        backgroundColor: palette[i % palette.length] + '33',
+                        tension: 0.3,
+                        fill: false,
+                    })),
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    interaction: { mode: 'index', intersect: false },
+                },
+            });
+
+            // Chart 3: day of week (horizontal bar)
+            new Chart(document.getElementById('chart-dow'), {
+                type: 'bar',
+                data: {
+                    labels: dayLabels,
+                    datasets: [{
+                        label: 'Écoutes',
+                        data: dayValues,
+                        backgroundColor: 'rgba(59, 130, 246, 0.7)',
+                        borderRadius: 4,
+                    }],
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: { legend: { display: false } },
+                },
+            });
+        })();
+    </script>
+{% endblock %}
