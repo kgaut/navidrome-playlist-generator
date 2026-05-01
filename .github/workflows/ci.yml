@@ -94,6 +94,6 @@ jobs:
           context: .
           push: false
           load: true
-          tags: navidrome-playlist-generator:ci
+          tags: navidrome-tools:ci
           cache-from: type=gha
           cache-to: type=gha,mode=max

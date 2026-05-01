@@ -1,4 +1,4 @@
-name: navidrome-playlist-generator
+name: navidrome-tools
 
 # Recommended Lando stack for Symfony 7 :
 #  - PHP 8.3 served via nginx
@@ -75,4 +75,4 @@ tooling:
 
 proxy:
   appserver_nginx:
-    - playlist-generator.lndo.site
+    - navidrome-tools.lndo.site

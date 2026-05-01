@@ -7,7 +7,7 @@ use Symfony\Contracts\HttpClient\HttpClientInterface;
 class SubsonicClient
 {
     private const API_VERSION = '1.16.1';
-    private const CLIENT_ID = 'navidrome-playlist-generator';
+    private const CLIENT_ID = 'navidrome-tools';
 
     public function __construct(
         private readonly HttpClientInterface $httpClient,

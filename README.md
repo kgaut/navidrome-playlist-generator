@@ -1,11 +1,13 @@
-# Navidrome Playlist Generator
+# Navidrome Tools
 
 [![CI](https://github.com/kgaut/navidrome-playlist-generator/actions/workflows/ci.yml/badge.svg)](https://github.com/kgaut/navidrome-playlist-generator/actions/workflows/ci.yml)
 
-Outil web self-hosted (Symfony 7) qui lit la base SQLite de
-[Navidrome](https://www.navidrome.org/) en lecture seule pour calculer
-différents tops de morceaux et créer les playlists correspondantes dans
-Navidrome via son API Subsonic.
+Boîte à outils web self-hosted (Symfony 7) autour de
+[Navidrome](https://www.navidrome.org/) : générateur de playlists basé
+sur les écoutes, statistiques détaillées, import one-shot des scrobbles
+Last.fm, intégration Lidarr et historique des runs cron.
+
+Image Docker publiée sous `ghcr.io/kgaut/navidrome-tools`.
 
 Fonctionnalités principales :
 
@@ -98,7 +100,7 @@ lando migrate        # crée la DB locale du tool
 lando seed           # insère les 4 définitions d'exemple
 
 # UI accessible sur :
-#   https://playlist-generator.lndo.site
+#   https://navidrome-tools.lndo.site
 ```
 
 Commandes utiles :
@@ -212,7 +214,7 @@ la variable d'environnement `LASTFM_API_KEY`.
       -e LASTFM_API_KEY=... \
       -e APP_SECRET=... -e APP_AUTH_USER=admin -e APP_AUTH_PASSWORD=... \
       -e NAVIDROME_USER=admin -e NAVIDROME_PASSWORD=... \
-      ghcr.io/kgaut/navidrome-playlist-generator:latest \
+      ghcr.io/kgaut/navidrome-tools:latest \
       php bin/console app:lastfm:import myuser
   ```
   (volume **sans** `:ro`). Idéalement, **arrêter Navidrome** pendant

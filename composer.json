@@ -1,6 +1,6 @@
 {
-    "name": "kgaut/navidrome-playlist-generator",
-    "description": "Self-hosted tool to generate Navidrome playlists from listening statistics.",
+    "name": "kgaut/navidrome-tools",
+    "description": "Navidrome Tools — self-hosted Symfony app: playlist generator, listening stats, Last.fm import, Lidarr integration, run history.",
     "type": "project",
     "license": "MIT",
     "require": {

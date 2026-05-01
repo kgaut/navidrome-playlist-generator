@@ -1,6 +1,6 @@
 services:
-  playlist-generator-web:
-    image: ghcr.io/kgaut/navidrome-playlist-generator:latest
+  navidrome-tools-web:
+    image: ghcr.io/kgaut/navidrome-tools:latest
     # build: .   # uncomment for local build
     restart: unless-stopped
     ports:
@@ -21,10 +21,10 @@ services:
       # Mount Navidrome's SQLite DB read-only.
       - ${NAVIDROME_DATA_DIR:-/srv/navidrome/data}/navidrome.db:/data/navidrome.db:ro
       # Persistent volume for the tool's own DB (playlist definitions, settings).
-      - playlist-data:/app/var
+      - navidrome-tools-data:/app/var
 
-  playlist-generator-cron:
-    image: ghcr.io/kgaut/navidrome-playlist-generator:latest
+  navidrome-tools-cron:
+    image: ghcr.io/kgaut/navidrome-tools:latest
     # build: .
     restart: unless-stopped
     environment:
@@ -41,7 +41,7 @@ services:
       STATS_REFRESH_SCHEDULE: ${STATS_REFRESH_SCHEDULE:-0 */6 * * *}
     volumes:
       - ${NAVIDROME_DATA_DIR:-/srv/navidrome/data}/navidrome.db:/data/navidrome.db:ro
-      - playlist-data:/app/var
+      - navidrome-tools-data:/app/var
 
 volumes:
-  playlist-data:
+  navidrome-tools-data:
