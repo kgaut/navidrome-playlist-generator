@@ -70,8 +70,6 @@ class NavidromeRepository
     public function topTracksInWindow(\DateTimeInterface $from, \DateTimeInterface $to, int $limit): array
     {
         $userId = $this->resolveUserId();
-        $fromStr = $from->format('Y-m-d H:i:s');
-        $toStr = $to->format('Y-m-d H:i:s');
 
         if ($this->hasScrobblesTable()) {
             $sql = <<<'SQL'
@@ -84,6 +82,12 @@ class NavidromeRepository
                 ORDER BY COUNT(*) DESC, MAX(s.submission_time) DESC
                 LIMIT :lim
             SQL;
+            $params = ['uid' => $userId, 'from' => $from->getTimestamp(), 'to' => $to->getTimestamp(), 'lim' => $limit];
+            $types = [
+                'from' => \Doctrine\DBAL\ParameterType::INTEGER,
+                'to' => \Doctrine\DBAL\ParameterType::INTEGER,
+                'lim' => \Doctrine\DBAL\ParameterType::INTEGER,
+            ];
         } else {
             $sql = <<<'SQL'
                 SELECT a.item_id AS id
@@ -95,16 +99,16 @@ class NavidromeRepository
                 ORDER BY a.play_count DESC, a.play_date DESC
                 LIMIT :lim
             SQL;
+            $params = [
+                'uid' => $userId,
+                'from' => $from->format('Y-m-d H:i:s'),
+                'to' => $to->format('Y-m-d H:i:s'),
+                'lim' => $limit,
+            ];
+            $types = ['lim' => \Doctrine\DBAL\ParameterType::INTEGER];
         }
 
-        $rows = $this->connection()->fetchAllAssociative($sql, [
-            'uid' => $userId,
-            'from' => $fromStr,
-            'to' => $toStr,
-            'lim' => $limit,
-        ], [
-            'lim' => \Doctrine\DBAL\ParameterType::INTEGER,
-        ]);
+        $rows = $this->connection()->fetchAllAssociative($sql, $params, $types);
 
         return array_map(static fn (array $r) => (string) $r['id'], $rows);
     }
@@ -180,8 +184,11 @@ class NavidromeRepository
                       AND submission_time >= :f AND submission_time < :t';
             $count = $this->connection()->fetchOne($sql, [
                 'uid' => $userId,
-                'f' => $from->format('Y-m-d H:i:s'),
-                't' => $to->format('Y-m-d H:i:s'),
+                'f' => $from->getTimestamp(),
+                't' => $to->getTimestamp(),
+            ], [
+                'f' => \Doctrine\DBAL\ParameterType::INTEGER,
+                't' => \Doctrine\DBAL\ParameterType::INTEGER,
             ]);
 
             return (int) $count;
@@ -220,8 +227,11 @@ class NavidromeRepository
 
             return (int) $this->connection()->fetchOne($sql, [
                 'uid' => $userId,
-                'f' => $from->format('Y-m-d H:i:s'),
-                't' => $to->format('Y-m-d H:i:s'),
+                'f' => $from->getTimestamp(),
+                't' => $to->getTimestamp(),
+            ], [
+                'f' => \Doctrine\DBAL\ParameterType::INTEGER,
+                't' => \Doctrine\DBAL\ParameterType::INTEGER,
             ]);
         }
 
@@ -265,10 +275,20 @@ class NavidromeRepository
                     LIMIT :lim';
             $params = [
                 'uid' => $userId,
-                'f' => $from->format('Y-m-d H:i:s'),
-                't' => $to->format('Y-m-d H:i:s'),
+                'f' => $from->getTimestamp(),
+                't' => $to->getTimestamp(),
                 'lim' => $limit,
             ];
+            $rows = $this->connection()->fetchAllAssociative($sql, $params, [
+                'f' => \Doctrine\DBAL\ParameterType::INTEGER,
+                't' => \Doctrine\DBAL\ParameterType::INTEGER,
+                'lim' => \Doctrine\DBAL\ParameterType::INTEGER,
+            ]);
+
+            return array_map(
+                static fn (array $r) => ['artist' => (string) $r['artist'], 'plays' => (int) $r['plays']],
+                $rows,
+            );
         } elseif ($from !== null && $to !== null) {
             $sql = 'SELECT mf.artist AS artist, COALESCE(SUM(a.play_count), 0) AS plays
                     FROM annotation a
@@ -330,10 +350,23 @@ class NavidromeRepository
                     LIMIT :lim';
             $params = [
                 'uid' => $userId,
-                'f' => $from->format('Y-m-d H:i:s'),
-                't' => $to->format('Y-m-d H:i:s'),
+                'f' => $from->getTimestamp(),
+                't' => $to->getTimestamp(),
                 'lim' => $limit,
             ];
+            $rows = $this->connection()->fetchAllAssociative($sql, $params, [
+                'f' => \Doctrine\DBAL\ParameterType::INTEGER,
+                't' => \Doctrine\DBAL\ParameterType::INTEGER,
+                'lim' => \Doctrine\DBAL\ParameterType::INTEGER,
+            ]);
+
+            return array_map(static fn (array $r) => [
+                'id' => (string) $r['id'],
+                'title' => (string) $r['title'],
+                'artist' => (string) $r['artist'],
+                'album' => (string) $r['album'],
+                'plays' => (int) $r['plays'],
+            ], $rows);
         } elseif ($from !== null && $to !== null) {
             $sql = 'SELECT mf.id AS id, mf.title AS title, mf.artist AS artist, mf.album AS album,
                            COALESCE(a.play_count, 0) AS plays
@@ -391,19 +424,20 @@ class NavidromeRepository
         $from = $now->modify('first day of this month')->setTime(0, 0)
             ->modify(sprintf('-%d months', max(0, $monthsBack - 1)));
 
-        $sql = "SELECT strftime('%Y-%m', s.submission_time) AS month, COUNT(*) AS plays
+        $sql = "SELECT strftime('%Y-%m', s.submission_time, 'unixepoch') AS month, COUNT(*) AS plays
                 FROM scrobbles s
                 JOIN media_file mf ON mf.id = s.media_file_id
                 WHERE s.user_id = :uid
                   AND s.submission_time >= :from";
-        $params = ['uid' => $userId, 'from' => $from->format('Y-m-d H:i:s')];
+        $params = ['uid' => $userId, 'from' => $from->getTimestamp()];
+        $types = ['from' => \Doctrine\DBAL\ParameterType::INTEGER];
         if ($artist !== null && $artist !== '') {
             $sql .= ' AND mf.artist = :artist';
             $params['artist'] = $artist;
         }
         $sql .= ' GROUP BY month ORDER BY month ASC';
 
-        $rows = $this->connection()->fetchAllAssociative($sql, $params);
+        $rows = $this->connection()->fetchAllAssociative($sql, $params, $types);
         $byMonth = [];
         foreach ($rows as $r) {
             $byMonth[(string) $r['month']] = (int) $r['plays'];
@@ -447,8 +481,11 @@ class NavidromeRepository
              GROUP BY mf.artist
              ORDER BY plays DESC
              LIMIT :lim",
-            ['uid' => $userId, 'from' => $from->format('Y-m-d H:i:s'), 'lim' => $topN],
-            ['lim' => \Doctrine\DBAL\ParameterType::INTEGER],
+            ['uid' => $userId, 'from' => $from->getTimestamp(), 'lim' => $topN],
+            [
+                'from' => \Doctrine\DBAL\ParameterType::INTEGER,
+                'lim' => \Doctrine\DBAL\ParameterType::INTEGER,
+            ],
         );
         if ($topRows === []) {
             return [];
@@ -458,7 +495,7 @@ class NavidromeRepository
         // Per-(artist, month) plays in a single query
         $placeholders = implode(',', array_fill(0, count($topArtists), '?'));
         $sql = sprintf(
-            "SELECT mf.artist AS artist, strftime('%%Y-%%m', s.submission_time) AS month, COUNT(*) AS plays
+            "SELECT mf.artist AS artist, strftime('%%Y-%%m', s.submission_time, 'unixepoch') AS month, COUNT(*) AS plays
              FROM scrobbles s
              JOIN media_file mf ON mf.id = s.media_file_id
              WHERE s.user_id = ? AND s.submission_time >= ? AND mf.artist IN (%s)
@@ -469,7 +506,7 @@ class NavidromeRepository
         foreach (
             $this->connection()->fetchAllAssociative(
                 $sql,
-                array_merge([$userId, $from->format('Y-m-d H:i:s')], $topArtists),
+                array_merge([$userId, $from->getTimestamp()], $topArtists),
             ) as $r
         ) {
             $byArtistMonth[(string) $r['artist']][(string) $r['month']] = (int) $r['plays'];
@@ -512,23 +549,26 @@ class NavidromeRepository
         }
 
         $userId = $this->resolveUserId();
-        $sql = "SELECT CAST(strftime('%w', submission_time) AS INTEGER) AS dow,
-                       CAST(strftime('%H', submission_time) AS INTEGER) AS hour,
+        $sql = "SELECT CAST(strftime('%w', submission_time, 'unixepoch') AS INTEGER) AS dow,
+                       CAST(strftime('%H', submission_time, 'unixepoch') AS INTEGER) AS hour,
                        COUNT(*) AS plays
                 FROM scrobbles
                 WHERE user_id = :uid";
         $params = ['uid' => $userId];
+        $types = [];
         if ($from !== null) {
             $sql .= ' AND submission_time >= :from';
-            $params['from'] = $from->format('Y-m-d H:i:s');
+            $params['from'] = $from->getTimestamp();
+            $types['from'] = \Doctrine\DBAL\ParameterType::INTEGER;
         }
         if ($to !== null) {
             $sql .= ' AND submission_time < :to';
-            $params['to'] = $to->format('Y-m-d H:i:s');
+            $params['to'] = $to->getTimestamp();
+            $types['to'] = \Doctrine\DBAL\ParameterType::INTEGER;
         }
         $sql .= ' GROUP BY dow, hour';
 
-        foreach ($this->connection()->fetchAllAssociative($sql, $params) as $r) {
+        foreach ($this->connection()->fetchAllAssociative($sql, $params, $types) as $r) {
             $matrix[(int) $r['dow']][(int) $r['hour']] = (int) $r['plays'];
         }
 
@@ -559,14 +599,18 @@ class NavidromeRepository
 
         $userId = $this->resolveUserId();
         $rows = $this->connection()->fetchAllAssociative(
-            "SELECT date(submission_time) AS d, COUNT(*) AS plays
+            "SELECT date(submission_time, 'unixepoch') AS d, COUNT(*) AS plays
              FROM scrobbles
              WHERE user_id = :uid AND submission_time >= :from AND submission_time < :to
              GROUP BY d",
             [
                 'uid' => $userId,
-                'from' => $start->format('Y-m-d H:i:s'),
-                'to' => $end->format('Y-m-d H:i:s'),
+                'from' => $start->getTimestamp(),
+                'to' => $end->getTimestamp(),
+            ],
+            [
+                'from' => \Doctrine\DBAL\ParameterType::INTEGER,
+                'to' => \Doctrine\DBAL\ParameterType::INTEGER,
             ],
         );
         foreach ($rows as $r) {
@@ -592,13 +636,13 @@ class NavidromeRepository
 
         $userId = $this->resolveUserId();
         $rows = $this->connection()->fetchAllAssociative(
-            "SELECT mf.artist AS artist, MIN(s.submission_time) AS first_play
+            "SELECT mf.artist AS artist, datetime(MIN(s.submission_time), 'unixepoch') AS first_play
              FROM scrobbles s
              JOIN media_file mf ON mf.id = s.media_file_id
              WHERE s.user_id = :uid AND mf.artist != ''
              GROUP BY mf.artist
-             HAVING strftime('%Y', first_play) = :year
-             ORDER BY first_play ASC
+             HAVING strftime('%Y', MIN(s.submission_time), 'unixepoch') = :year
+             ORDER BY MIN(s.submission_time) ASC
              LIMIT :lim",
             ['uid' => $userId, 'year' => (string) $year, 'lim' => $limit],
             ['lim' => \Doctrine\DBAL\ParameterType::INTEGER],
@@ -643,10 +687,10 @@ class NavidromeRepository
 
         $userId = $this->resolveUserId();
         $row = $this->connection()->fetchAssociative(
-            "SELECT strftime('%Y-%m', submission_time) AS month, COUNT(*) AS plays
+            "SELECT strftime('%Y-%m', submission_time, 'unixepoch') AS month, COUNT(*) AS plays
              FROM scrobbles
              WHERE user_id = :uid
-               AND strftime('%Y', submission_time) = :year
+               AND strftime('%Y', submission_time, 'unixepoch') = :year
              GROUP BY month
              ORDER BY plays DESC, month DESC
              LIMIT 1",
@@ -866,8 +910,11 @@ class NavidromeRepository
         $found = $this->connection()->fetchOne($sql, [
             'uid' => $userId,
             'mfid' => $mediaFileId,
-            'f' => $from->format('Y-m-d H:i:s'),
-            't' => $to->format('Y-m-d H:i:s'),
+            'f' => $from->getTimestamp(),
+            't' => $to->getTimestamp(),
+        ], [
+            'f' => \Doctrine\DBAL\ParameterType::INTEGER,
+            't' => \Doctrine\DBAL\ParameterType::INTEGER,
         ]);
 
         return $found !== false;
@@ -888,7 +935,8 @@ class NavidromeRepository
 
         $this->connection()->executeStatement(
             'INSERT INTO scrobbles (user_id, media_file_id, submission_time) VALUES (?, ?, ?)',
-            [$userId, $mediaFileId, $time->format('Y-m-d H:i:s')],
+            [$userId, $mediaFileId, $time->getTimestamp()],
+            [2 => \Doctrine\DBAL\ParameterType::INTEGER],
         );
     }
 
