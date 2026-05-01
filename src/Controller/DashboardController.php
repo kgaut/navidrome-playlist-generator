@@ -56,9 +56,11 @@ class DashboardController extends AbstractController
             ];
         }
 
+        $hasScrobbles = $navidrome->isAvailable() && $navidrome->hasScrobblesTable();
         $health = [
             'navidrome_db' => $navidrome->isAvailable(),
-            'has_scrobbles' => $navidrome->isAvailable() && $navidrome->hasScrobblesTable(),
+            'has_scrobbles' => $hasScrobbles,
+            'scrobbles_count' => $hasScrobbles ? $navidrome->getScrobblesCount() : null,
             'subsonic' => $subsonic->ping(),
         ];
 

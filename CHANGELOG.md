@@ -23,6 +23,10 @@ et le projet adhère à [Semantic Versioning 2.0](https://semver.org/lang/fr/).
   persistées des runs Last.fm — visible directement dans la colonne
   Métriques de l'historique et dans le dump JSON de la page détail.
 
+- Compteur de scrobbles affiché dans la card « Table scrobbles » du
+  dashboard (`SELECT COUNT(*) FROM scrobbles`, formaté avec séparateur
+  de milliers).
+
 ### Changed
 - Page historique des runs : la colonne Métriques masque maintenant
   les valeurs nulles ou vides plutôt que d'afficher `clé=`.

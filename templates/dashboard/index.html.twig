@@ -25,7 +25,8 @@
             <div class="font-medium">Table <code>scrobbles</code></div>
             <div>
                 {% if health.has_scrobbles %}
-                    ✓ présente — tops exacts
+                    ✓ présente — tops exacts<br>
+                    <span class="text-xs">{{ health.scrobbles_count|number_format(0, '.', ' ') }} scrobble{{ health.scrobbles_count > 1 ? 's' : '' }} en base</span>
                 {% else %}
                     ⚠ absente — fallback <code>annotation.play_date</code> (approximatif)
                 {% endif %}

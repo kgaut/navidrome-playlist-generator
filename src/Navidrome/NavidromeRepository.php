@@ -28,6 +28,19 @@ class NavidromeRepository
         }
     }
 
+    /**
+     * Total number of rows in the Navidrome `scrobbles` table for any user.
+     * Returns 0 when the table does not exist (Navidrome < 0.55).
+     */
+    public function getScrobblesCount(): int
+    {
+        if (!$this->hasScrobblesTable()) {
+            return 0;
+        }
+
+        return (int) $this->connection()->fetchOne('SELECT COUNT(*) FROM scrobbles');
+    }
+
     public function hasScrobblesTable(): bool
     {
         if ($this->hasScrobblesCache !== null) {
