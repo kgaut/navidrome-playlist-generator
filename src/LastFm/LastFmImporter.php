@@ -29,6 +29,7 @@ class LastFmImporter
         int $toleranceSeconds = 60,
         bool $dryRun = false,
         ?callable $progress = null,
+        ?int $maxScrobbles = null,
     ): ImportReport {
         $report = new ImportReport();
         $userId = $this->navidrome->resolveUserId();
@@ -41,6 +42,9 @@ class LastFmImporter
         }
 
         foreach ($this->client->streamRecentTracks($apiKey, $lastFmUser, $from, $to) as $scrobble) {
+            if ($maxScrobbles !== null && $report->fetched >= $maxScrobbles) {
+                break;
+            }
             $report->fetched++;
 
             $mediaFileId = null;

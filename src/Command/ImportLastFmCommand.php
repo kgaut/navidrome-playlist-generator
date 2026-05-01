@@ -68,6 +68,12 @@ class ImportLastFmCommand extends Command
                 InputOption::VALUE_REQUIRED,
                 'How many unmatched (artist, title) pairs to print, ordered by scrobble count DESC. 0 to hide. "all" to show everything.',
                 '50',
+            )
+            ->addOption(
+                'max-scrobbles',
+                null,
+                InputOption::VALUE_REQUIRED,
+                'Stop after processing N scrobbles (safety cap). Omit for no cap.',
             );
     }
 
@@ -97,6 +103,7 @@ class ImportLastFmCommand extends Command
         ));
 
         try {
+            $maxScrobbles = $input->getOption('max-scrobbles');
             $report = $this->importer->import(
                 apiKey: $apiKey,
                 lastFmUser: $user,
@@ -113,6 +120,7 @@ class ImportLastFmCommand extends Command
                         $u,
                     ));
                 },
+                maxScrobbles: $maxScrobbles !== null ? max(1, (int) $maxScrobbles) : null,
             );
         } catch (\Throwable $e) {
             $io->error($e->getMessage());

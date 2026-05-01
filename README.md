@@ -134,14 +134,46 @@ symfony serve                        # https://127.0.0.1:8000
 
 ## Import one-shot des scrobbles Last.fm
 
-Une commande CLI permet de récupérer l'historique de scrobbles Last.fm
-d'un utilisateur et de l'insérer dans la table `scrobbles` de Navidrome,
-en évitant les doublons.
+Deux moyens : **page web** `/lastfm/import` (pratique pour quelques
+milliers de scrobbles) ou **commande CLI** (recommandée au-delà).
+
+Dans les deux cas, l'outil récupère l'historique Last.fm d'un utilisateur
+et l'insère dans la table `scrobbles` de Navidrome en évitant les
+doublons.
+
+> ⚠️ **ARRÊTEZ Navidrome avant tout import qui écrit** dans la base
+> SQLite : risque de lock SQLite, de corruption WAL et de stats
+> incohérentes. La page web affiche ce warning en gros et propose un
+> mode **Dry-run** (coché par défaut) pour vérifier le rapport sans
+> écrire. Pensez à sauvegarder votre fichier `navidrome.db` avant un
+> import en écriture.
+
+### Via l'interface web
+
+Accédez à `/lastfm/import` une fois connecté. Le formulaire propose :
+
+- Identifiant Last.fm + API key (la clé peut aussi venir de
+  l'environnement via `LASTFM_API_KEY`).
+- Filtres `from` / `to` optionnels.
+- Tolérance dedup (secondes) — un scrobble n'est pas réinséré s'il en
+  existe déjà un sur la même piste à ± cette durée.
+- Limite de sécurité (max scrobbles, défaut 5 000) pour éviter les
+  timeouts HTTP.
+- Case **Dry-run** (cochée par défaut).
+
+Le bouton « Lancer l'import » demande une confirmation JS si vous avez
+décoché Dry-run. Le rapport s'affiche en bas de page : 4 cards
+(récupérés / insérés / doublons / non trouvés) puis un tableau des 100
+morceaux non trouvés les plus écoutés sur Last.fm, triés par nombre de
+scrobbles décroissant.
+
+### Via la commande CLI
 
 ```bash
 php bin/console app:lastfm:import <lastfm-user> --api-key=YOUR_KEY \
     [--from=YYYY-MM-DD] [--to=YYYY-MM-DD] \
-    [--tolerance=60] [--dry-run] [--show-unmatched=50|all|0]
+    [--tolerance=60] [--dry-run] [--show-unmatched=50|all|0] \
+    [--max-scrobbles=N]
 ```
 
 L'API key Last.fm s'obtient gratuitement sur

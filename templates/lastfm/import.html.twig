@@ -1,0 +1,139 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Import Last.fm{% endblock %}
+
+{% block body %}
+    <h1 class="text-2xl font-semibold mb-4">Import des scrobbles Last.fm</h1>
+
+    {# ---------- WARNING block: Navidrome must be stopped before write imports ---------- #}
+    <div class="bg-rose-50 border-2 border-rose-400 rounded-lg p-5 mb-6 shadow-sm">
+        <div class="flex items-start gap-3">
+            <div class="text-3xl">⚠️</div>
+            <div class="flex-1">
+                <h2 class="text-lg font-bold text-rose-900 mb-1">
+                    ARRÊTEZ NAVIDROME avant tout import qui écrit dans la base
+                </h2>
+                <p class="text-sm text-rose-900 mb-2">
+                    Cet outil <strong>écrit directement</strong> dans le fichier
+                    SQLite de Navidrome (table <code>scrobbles</code>). Si Navidrome
+                    tourne en parallèle, vous risquez :
+                </p>
+                <ul class="text-sm text-rose-900 list-disc pl-6 space-y-1 mb-3">
+                    <li>des <strong>locks SQLite</strong> qui font échouer l'import en cours de route ;</li>
+                    <li>une <strong>corruption</strong> du journal WAL en cas d'écritures concurrentes ;</li>
+                    <li>des stats incohérentes le temps que Navidrome rafraîchisse son cache.</li>
+                </ul>
+                <p class="text-sm text-rose-900 mb-2">
+                    <strong>Procédure recommandée :</strong>
+                </p>
+                <ol class="text-sm text-rose-900 list-decimal pl-6 space-y-1 mb-3">
+                    <li><strong>Sauvegardez</strong> votre fichier <code>navidrome.db</code> (cp navidrome.db navidrome.db.bak).</li>
+                    <li>Cochez d'abord <strong>« Dry-run »</strong> pour vérifier le rapport des morceaux trouvés / non trouvés.</li>
+                    <li>Stoppez Navidrome (<code>docker compose stop navidrome</code> ou systemctl stop).</li>
+                    <li>Décochez « Dry-run » et relancez l'import.</li>
+                    <li>Redémarrez Navidrome.</li>
+                </ol>
+                <p class="text-sm text-rose-900">
+                    Pour de très gros historiques (&gt; 10 000 scrobbles), préférez la
+                    commande CLI <code>php bin/console app:lastfm:import</code> sans
+                    limite : aucun risque de timeout HTTP.
+                </p>
+            </div>
+        </div>
+    </div>
+
+    {# ---------- Form ---------- #}
+    <div class="bg-white shadow rounded p-6 max-w-2xl mb-6">
+        {{ form_start(form, {attr: {class: 'space-y-4'}}) }}
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {{ form_row(form.lastfm_user) }}
+                {{ form_row(form.api_key) }}
+                {{ form_row(form.from) }}
+                {{ form_row(form.to) }}
+                {{ form_row(form.tolerance) }}
+                {{ form_row(form.max_scrobbles) }}
+            </div>
+            <div class="border-t pt-4">
+                {{ form_row(form.dry_run) }}
+            </div>
+            <div class="flex justify-end pt-2">
+                <button type="submit"
+                        onclick="if(!document.querySelector('[name$=\'[dry_run]\']').checked){return confirm('Avez-vous arrêté Navidrome ? Cliquez OK pour confirmer l\'import en écriture.');}"
+                        class="px-4 py-2 text-sm rounded bg-emerald-600 hover:bg-emerald-700 text-white">
+                    Lancer l'import
+                </button>
+            </div>
+        {{ form_end(form) }}
+    </div>
+
+    {# ---------- Result ---------- #}
+    {% if error %}
+        <div class="bg-rose-50 border border-rose-300 text-rose-800 rounded p-4 mb-6">
+            <strong>Erreur :</strong> {{ error }}
+        </div>
+    {% endif %}
+
+    {% if report %}
+        <div class="bg-white shadow rounded p-6 mb-6">
+            <h2 class="font-semibold mb-3">Rapport d'import</h2>
+            <div class="grid grid-cols-2 md:grid-cols-4 gap-3 text-center">
+                <div class="bg-slate-100 rounded p-3">
+                    <div class="text-xs uppercase text-slate-500">Récupérés</div>
+                    <div class="text-2xl font-semibold">{{ report.fetched|number_format(0, '.', ' ') }}</div>
+                </div>
+                <div class="bg-emerald-50 rounded p-3">
+                    <div class="text-xs uppercase text-emerald-700">Insérés</div>
+                    <div class="text-2xl font-semibold text-emerald-800">{{ report.inserted|number_format(0, '.', ' ') }}</div>
+                </div>
+                <div class="bg-sky-50 rounded p-3">
+                    <div class="text-xs uppercase text-sky-700">Doublons</div>
+                    <div class="text-2xl font-semibold text-sky-800">{{ report.duplicates|number_format(0, '.', ' ') }}</div>
+                </div>
+                <div class="bg-amber-50 rounded p-3">
+                    <div class="text-xs uppercase text-amber-700">Non trouvés</div>
+                    <div class="text-2xl font-semibold text-amber-800">{{ report.unmatched|number_format(0, '.', ' ') }}</div>
+                </div>
+            </div>
+        </div>
+
+        {% if unmatched is not empty %}
+            <div class="bg-white shadow rounded overflow-hidden">
+                <div class="px-4 py-3 border-b bg-slate-50 flex items-center justify-between">
+                    <h2 class="font-semibold text-sm">
+                        Morceaux Last.fm non trouvés dans Navidrome
+                        <span class="text-xs text-slate-500">
+                            (top {{ unmatched|length }} sur {{ report.distinctUnmatched }} distincts, triés par scrobbles ↓)
+                        </span>
+                    </h2>
+                </div>
+                <div class="max-h-[600px] overflow-y-auto">
+                    <table class="w-full text-sm">
+                        <thead class="bg-slate-100 text-slate-600 text-left text-xs sticky top-0">
+                        <tr>
+                            <th class="px-3 py-2 w-20 text-right">Plays</th>
+                            <th class="px-3 py-2">Artiste</th>
+                            <th class="px-3 py-2">Titre</th>
+                            <th class="px-3 py-2">Album</th>
+                        </tr>
+                        </thead>
+                        <tbody class="divide-y">
+                        {% for row in unmatched %}
+                            <tr>
+                                <td class="px-3 py-1.5 text-right font-medium">{{ row.count }}</td>
+                                <td class="px-3 py-1.5">{{ row.artist }}</td>
+                                <td class="px-3 py-1.5">{{ row.title }}</td>
+                                <td class="px-3 py-1.5 text-slate-500">{{ row.album }}</td>
+                            </tr>
+                        {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                <p class="text-xs text-slate-500 px-4 py-2 border-t">
+                    Ces morceaux ont été scrobblés sur Last.fm mais n'existent pas
+                    dans votre lib Navidrome (ou ont un artiste/titre différent).
+                    Ajoutez-les puis relancez l'import.
+                </p>
+            </div>
+        {% endif %}
+    {% endif %}
+{% endblock %}
