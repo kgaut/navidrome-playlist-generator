@@ -1,0 +1,105 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Historique Last.fm{% endblock %}
+
+{% block body %}
+    <div class="flex flex-wrap items-center gap-3 text-xs mb-4">
+        <span class="text-slate-500">Voir aussi :</span>
+        <a href="{{ path('app_stats') }}" class="px-2 py-1 rounded bg-slate-100 hover:bg-slate-200">Vue d'ensemble</a>
+        <a href="{{ path('app_stats_compare') }}" class="px-2 py-1 rounded bg-slate-100 hover:bg-slate-200">Comparer 2 périodes</a>
+        <a href="{{ path('app_stats_charts') }}" class="px-2 py-1 rounded bg-slate-100 hover:bg-slate-200">Graphiques</a>
+        <a href="{{ path('app_stats_heatmap') }}" class="px-2 py-1 rounded bg-slate-100 hover:bg-slate-200">Heatmap</a>
+        <a href="{{ path('app_wrapped_default') }}" class="px-2 py-1 rounded bg-slate-100 hover:bg-slate-200">Wrapped</a>
+    </div>
+
+    <div class="flex items-start justify-between mb-6 flex-wrap gap-3">
+        <div>
+            <h1 class="text-2xl font-semibold">Historique Last.fm</h1>
+            <p class="text-sm text-slate-500">
+                {% if user %}
+                    Les 100 derniers scrobbles de <strong>{{ user }}</strong> sur Last.fm
+                    {% if last_fetched %}
+                        — mis en cache le <span title="{{ last_fetched|date('Y-m-d H:i:s') }}">{{ last_fetched|date('Y-m-d H:i') }}</span>
+                    {% else %}
+                        — aucun cache, cliquez sur Rafraîchir pour fetcher
+                    {% endif %}
+                {% else %}
+                    Aucun utilisateur Last.fm — renseignez <code>LASTFM_USER</code> dans l'environnement
+                    ou ajoutez <code>?user=&lt;username&gt;</code> dans l'URL.
+                {% endif %}
+            </p>
+        </div>
+
+        {% if user %}
+            <form method="get" action="{{ path('app_stats_lastfm_history') }}" class="flex items-center gap-2">
+                <label for="user" class="text-xs uppercase text-slate-500">User Last.fm</label>
+                <input type="text" name="user" id="user" value="{{ user }}"
+                       class="border rounded px-2 py-1 text-sm w-40">
+                <button type="submit" class="px-3 py-1 rounded bg-slate-100 hover:bg-slate-200 text-sm">Voir</button>
+            </form>
+
+            <form method="post" action="{{ path('app_stats_lastfm_history_refresh') }}">
+                <input type="hidden" name="user" value="{{ user }}">
+                <input type="hidden" name="_token" value="{{ csrf_token('lastfm_history_refresh') }}">
+                <button type="submit"
+                        {{ not api_key_configured ? 'disabled' : '' }}
+                        class="bg-emerald-600 hover:bg-emerald-700 text-white px-3 py-1.5 rounded text-sm disabled:opacity-50 disabled:cursor-not-allowed"
+                        title="{{ api_key_configured ? 'Récupère les 100 derniers scrobbles via l\'API Last.fm' : 'LASTFM_API_KEY non défini' }}">
+                    ↻ Rafraîchir depuis Last.fm
+                </button>
+            </form>
+        {% endif %}
+    </div>
+
+    {% if user and not api_key_configured %}
+        <div class="bg-amber-50 border border-amber-300 text-amber-800 rounded p-4 mb-4 text-sm">
+            <strong>LASTFM_API_KEY</strong> n'est pas défini dans l'environnement. Configurez-le pour
+            pouvoir rafraîchir l'historique. Une clé est gratuite sur
+            <a href="https://www.last.fm/api/account/create" class="underline">last.fm/api/account/create</a>.
+        </div>
+    {% endif %}
+
+    {% if user and entries is empty %}
+        <div class="bg-white shadow rounded p-6 text-center text-slate-500">
+            Aucun scrobble en cache pour <strong>{{ user }}</strong>. Cliquez sur « Rafraîchir » pour interroger l'API.
+        </div>
+    {% elseif user %}
+        <div class="bg-white shadow rounded overflow-hidden">
+            <table class="w-full text-sm">
+                <thead class="bg-slate-100 text-slate-600 text-left text-xs">
+                <tr>
+                    <th class="px-3 py-2 w-10">#</th>
+                    <th class="px-3 py-2">Joué le</th>
+                    <th class="px-3 py-2">Titre</th>
+                    <th class="px-3 py-2">Artiste</th>
+                    <th class="px-3 py-2">Album</th>
+                </tr>
+                </thead>
+                <tbody class="divide-y">
+                {% for e in entries %}
+                    <tr>
+                        <td class="px-3 py-1.5 text-slate-400">{{ loop.index }}</td>
+                        <td class="px-3 py-1.5 text-xs text-slate-500" title="{{ e.playedAt|date('Y-m-d H:i:s') }}">
+                            {{ e.playedAt|date('Y-m-d H:i') }}
+                        </td>
+                        <td class="px-3 py-1.5">
+                            <a href="https://www.last.fm/music/{{ e.artist|url_encode }}/_/{{ e.title|url_encode }}"
+                               class="hover:underline" target="_blank" rel="noopener">
+                                {{ e.title }}
+                            </a>
+                        </td>
+                        <td class="px-3 py-1.5">
+                            <a href="https://www.last.fm/music/{{ e.artist|url_encode }}"
+                               class="hover:underline" target="_blank" rel="noopener">
+                                {{ e.artist }}
+                            </a>
+                        </td>
+                        <td class="px-3 py-1.5 text-slate-500">{{ e.album ?? '—' }}</td>
+                    </tr>
+                {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        <p class="text-xs text-slate-500 mt-2">{{ entries|length }} morceau{{ entries|length > 1 ? 'x' : '' }}.</p>
+    {% endif %}
+{% endblock %}

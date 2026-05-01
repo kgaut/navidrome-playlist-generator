@@ -29,6 +29,14 @@ et le projet adhère à [Semantic Versioning 2.0](https://semver.org/lang/fr/).
   5 jobs (phpcs, phpstan, tests matrix 8.3+8.4, docker-build,
   docker-publish multi-arch). Pousse vers le registre du projet par
   défaut, override via la variable `REGISTRY_IMAGE`.
+- Page **Historique Last.fm** (`/stats/lastfm-history`) dans le menu
+  Statistiques : affiche les 100 derniers scrobbles cachés en local
+  pour le user Last.fm courant (`LASTFM_USER` ou `?user=` dans
+  l'URL). Bouton Rafraîchir qui interroge `user.getRecentTracks` et
+  fait un wipe + re-insert atomique en transaction. Cache stocké
+  dans la nouvelle table `lastfm_history` (migration
+  `Version20260501300000`). Run audité dans `RunHistory` avec la
+  référence `history:<user>`.
 
 ### Changed
 - Page historique des runs : la colonne Métriques masque maintenant
