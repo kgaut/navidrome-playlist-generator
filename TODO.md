@@ -6,3 +6,4 @@
 5. Pouvoir stocker en variable d'environnement son nom d'utilisateur lastfm pour éviter d'avoir à le renseigner à chaque fois.
 6. Lors de la génération d'un wrapped j'ai l'erreur `An exception has been thrown during the rendering of a template ("Warning: A non-numeric value encountered") in wrapped/show.html.twig at line 57.`
 7. Lors de l'import lastfm, le matching semble ne pas fonctionner, sur toute l'année 2026, il ne me trouve aucune correspondance.
+8. Dans l'historique des import, ajoute en colonne la date-min et date-max
