@@ -11,8 +11,16 @@
 <div class="min-h-full flex flex-col">
     <header class="bg-slate-900 text-slate-100">
         <div class="max-w-6xl mx-auto px-4 py-3 flex items-center justify-between">
-            <a href="{{ path('app_dashboard') }}" class="text-lg font-semibold">
+            <a href="{{ path('app_dashboard') }}" class="text-lg font-semibold flex items-center gap-2">
                 🎵 Navidrome Tools
+                {% if app.user %}
+                    {% set h = app_health() %}
+                    {% set tooltip = h.healthy
+                        ? 'DB Navidrome + API Subsonic OK'
+                        : 'DB Navidrome : ' ~ (h.navidrome_db ? 'OK' : 'KO') ~ ' — Subsonic : ' ~ (h.subsonic ? 'OK' : 'KO') %}
+                    <span class="inline-block w-2.5 h-2.5 rounded-full {{ h.healthy ? 'bg-emerald-400' : 'bg-rose-500' }}"
+                          title="{{ tooltip }}"></span>
+                {% endif %}
             </a>
             <nav class="flex items-center gap-4 text-sm">
                 {% if app.user %}
