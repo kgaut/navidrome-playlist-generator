@@ -16,6 +16,7 @@ services:
       APP_AUTH_USER: ${APP_AUTH_USER:-admin}
       APP_AUTH_PASSWORD: ${APP_AUTH_PASSWORD:?set APP_AUTH_PASSWORD in .env}
       DATABASE_URL: "sqlite:///%kernel.project_dir%/var/data.db"
+      STATS_REFRESH_SCHEDULE: ${STATS_REFRESH_SCHEDULE:-0 */6 * * *}
     volumes:
       # Mount Navidrome's SQLite DB read-only.
       - ${NAVIDROME_DATA_DIR:-/srv/navidrome/data}/navidrome.db:/data/navidrome.db:ro
@@ -37,6 +38,7 @@ services:
       APP_AUTH_USER: ${APP_AUTH_USER:-admin}
       APP_AUTH_PASSWORD: ${APP_AUTH_PASSWORD:?set APP_AUTH_PASSWORD in .env}
       DATABASE_URL: "sqlite:///%kernel.project_dir%/var/data.db"
+      STATS_REFRESH_SCHEDULE: ${STATS_REFRESH_SCHEDULE:-0 */6 * * *}
     volumes:
       - ${NAVIDROME_DATA_DIR:-/srv/navidrome/data}/navidrome.db:/data/navidrome.db:ro
       - playlist-data:/app/var

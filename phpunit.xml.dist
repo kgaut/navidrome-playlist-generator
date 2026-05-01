@@ -18,6 +18,7 @@
         <env name="NAVIDROME_URL" value="http://localhost:4533"/>
         <env name="NAVIDROME_USER" value="admin"/>
         <env name="NAVIDROME_PASSWORD" value="changeme"/>
+        <env name="STATS_REFRESH_SCHEDULE" value="0 */6 * * *"/>
     </php>
 
     <testsuites>

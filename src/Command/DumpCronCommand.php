@@ -18,6 +18,7 @@ class DumpCronCommand extends Command
     public function __construct(
         private readonly PlaylistDefinitionRepository $repository,
         private readonly string $projectDir,
+        private readonly string $statsRefreshSchedule,
     ) {
         parent::__construct();
     }
@@ -48,6 +49,21 @@ class DumpCronCommand extends Command
                 $bin,
                 (int) $def->getId(),
             ));
+        }
+
+        if ($this->statsRefreshSchedule !== '') {
+            try {
+                new CronExpression($this->statsRefreshSchedule);
+                $output->writeln('');
+                $output->writeln('# Stats snapshots refresh (STATS_REFRESH_SCHEDULE)');
+                $output->writeln(sprintf(
+                    '%s php %s app:stats:compute',
+                    $this->statsRefreshSchedule,
+                    $bin,
+                ));
+            } catch (\Throwable $e) {
+                $output->writeln('# SKIP stats refresh: invalid STATS_REFRESH_SCHEDULE (' . $e->getMessage() . ')');
+            }
         }
 
         return Command::SUCCESS;

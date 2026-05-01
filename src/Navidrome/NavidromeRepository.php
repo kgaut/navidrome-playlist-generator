@@ -168,6 +168,213 @@ class NavidromeRepository
     }
 
     /**
+     * Total number of plays in [from, to). Pass null/null for all-time.
+     */
+    public function getTotalPlays(?\DateTimeInterface $from, ?\DateTimeInterface $to): int
+    {
+        $userId = $this->resolveUserId();
+
+        if ($this->hasScrobblesTable() && $from !== null && $to !== null) {
+            $sql = 'SELECT COUNT(*) FROM scrobbles
+                    WHERE user_id = :uid
+                      AND submission_time >= :f AND submission_time < :t';
+            $count = $this->connection()->fetchOne($sql, [
+                'uid' => $userId,
+                'f' => $from->format('Y-m-d H:i:s'),
+                't' => $to->format('Y-m-d H:i:s'),
+            ]);
+
+            return (int) $count;
+        }
+
+        if ($from !== null && $to !== null) {
+            // Fallback: only counts plays whose LAST play falls in the window.
+            $sql = "SELECT COALESCE(SUM(play_count), 0) FROM annotation
+                    WHERE item_type = 'media_file' AND user_id = :uid
+                      AND play_date >= :f AND play_date < :t";
+
+            return (int) $this->connection()->fetchOne($sql, [
+                'uid' => $userId,
+                'f' => $from->format('Y-m-d H:i:s'),
+                't' => $to->format('Y-m-d H:i:s'),
+            ]);
+        }
+
+        $sql = "SELECT COALESCE(SUM(play_count), 0) FROM annotation
+                WHERE item_type = 'media_file' AND user_id = :uid";
+
+        return (int) $this->connection()->fetchOne($sql, ['uid' => $userId]);
+    }
+
+    /**
+     * Number of distinct media files played at least once in [from, to).
+     */
+    public function getDistinctTracksPlayed(?\DateTimeInterface $from, ?\DateTimeInterface $to): int
+    {
+        $userId = $this->resolveUserId();
+
+        if ($this->hasScrobblesTable() && $from !== null && $to !== null) {
+            $sql = 'SELECT COUNT(DISTINCT media_file_id) FROM scrobbles
+                    WHERE user_id = :uid
+                      AND submission_time >= :f AND submission_time < :t';
+
+            return (int) $this->connection()->fetchOne($sql, [
+                'uid' => $userId,
+                'f' => $from->format('Y-m-d H:i:s'),
+                't' => $to->format('Y-m-d H:i:s'),
+            ]);
+        }
+
+        if ($from !== null && $to !== null) {
+            $sql = "SELECT COUNT(*) FROM annotation
+                    WHERE item_type = 'media_file' AND user_id = :uid
+                      AND play_count > 0
+                      AND play_date >= :f AND play_date < :t";
+
+            return (int) $this->connection()->fetchOne($sql, [
+                'uid' => $userId,
+                'f' => $from->format('Y-m-d H:i:s'),
+                't' => $to->format('Y-m-d H:i:s'),
+            ]);
+        }
+
+        $sql = "SELECT COUNT(*) FROM annotation
+                WHERE item_type = 'media_file' AND user_id = :uid AND play_count > 0";
+
+        return (int) $this->connection()->fetchOne($sql, ['uid' => $userId]);
+    }
+
+    /**
+     * Top artists by aggregated plays in [from, to). Pass null/null for all-time.
+     *
+     * @return list<array{artist: string, plays: int}>
+     */
+    public function getTopArtists(?\DateTimeInterface $from, ?\DateTimeInterface $to, int $limit): array
+    {
+        $userId = $this->resolveUserId();
+
+        if ($this->hasScrobblesTable() && $from !== null && $to !== null) {
+            $sql = 'SELECT mf.artist AS artist, COUNT(*) AS plays
+                    FROM scrobbles s
+                    JOIN media_file mf ON mf.id = s.media_file_id
+                    WHERE s.user_id = :uid
+                      AND s.submission_time >= :f AND s.submission_time < :t
+                      AND mf.artist != ""
+                    GROUP BY mf.artist
+                    ORDER BY plays DESC, artist ASC
+                    LIMIT :lim';
+            $params = [
+                'uid' => $userId,
+                'f' => $from->format('Y-m-d H:i:s'),
+                't' => $to->format('Y-m-d H:i:s'),
+                'lim' => $limit,
+            ];
+        } elseif ($from !== null && $to !== null) {
+            $sql = 'SELECT mf.artist AS artist, COALESCE(SUM(a.play_count), 0) AS plays
+                    FROM annotation a
+                    JOIN media_file mf ON mf.id = a.item_id
+                    WHERE a.item_type = "media_file" AND a.user_id = :uid
+                      AND a.play_date >= :f AND a.play_date < :t
+                      AND mf.artist != ""
+                    GROUP BY mf.artist
+                    ORDER BY plays DESC, artist ASC
+                    LIMIT :lim';
+            $params = [
+                'uid' => $userId,
+                'f' => $from->format('Y-m-d H:i:s'),
+                't' => $to->format('Y-m-d H:i:s'),
+                'lim' => $limit,
+            ];
+        } else {
+            $sql = 'SELECT mf.artist AS artist, COALESCE(SUM(a.play_count), 0) AS plays
+                    FROM annotation a
+                    JOIN media_file mf ON mf.id = a.item_id
+                    WHERE a.item_type = "media_file" AND a.user_id = :uid
+                      AND a.play_count > 0
+                      AND mf.artist != ""
+                    GROUP BY mf.artist
+                    ORDER BY plays DESC, artist ASC
+                    LIMIT :lim';
+            $params = ['uid' => $userId, 'lim' => $limit];
+        }
+
+        $rows = $this->connection()->fetchAllAssociative($sql, $params, [
+            'lim' => \Doctrine\DBAL\ParameterType::INTEGER,
+        ]);
+
+        return array_map(
+            static fn (array $r) => ['artist' => (string) $r['artist'], 'plays' => (int) $r['plays']],
+            $rows,
+        );
+    }
+
+    /**
+     * Top tracks (with full metadata) by aggregated plays in [from, to).
+     * Pass null/null for all-time.
+     *
+     * @return list<array{id: string, title: string, artist: string, album: string, plays: int}>
+     */
+    public function getTopTracksWithDetails(?\DateTimeInterface $from, ?\DateTimeInterface $to, int $limit): array
+    {
+        $userId = $this->resolveUserId();
+
+        if ($this->hasScrobblesTable() && $from !== null && $to !== null) {
+            $sql = 'SELECT mf.id AS id, mf.title AS title, mf.artist AS artist, mf.album AS album,
+                           COUNT(*) AS plays
+                    FROM scrobbles s
+                    JOIN media_file mf ON mf.id = s.media_file_id
+                    WHERE s.user_id = :uid
+                      AND s.submission_time >= :f AND s.submission_time < :t
+                    GROUP BY mf.id, mf.title, mf.artist, mf.album
+                    ORDER BY plays DESC, title ASC
+                    LIMIT :lim';
+            $params = [
+                'uid' => $userId,
+                'f' => $from->format('Y-m-d H:i:s'),
+                't' => $to->format('Y-m-d H:i:s'),
+                'lim' => $limit,
+            ];
+        } elseif ($from !== null && $to !== null) {
+            $sql = 'SELECT mf.id AS id, mf.title AS title, mf.artist AS artist, mf.album AS album,
+                           COALESCE(a.play_count, 0) AS plays
+                    FROM annotation a
+                    JOIN media_file mf ON mf.id = a.item_id
+                    WHERE a.item_type = "media_file" AND a.user_id = :uid
+                      AND a.play_date >= :f AND a.play_date < :t
+                    ORDER BY plays DESC, title ASC
+                    LIMIT :lim';
+            $params = [
+                'uid' => $userId,
+                'f' => $from->format('Y-m-d H:i:s'),
+                't' => $to->format('Y-m-d H:i:s'),
+                'lim' => $limit,
+            ];
+        } else {
+            $sql = 'SELECT mf.id AS id, mf.title AS title, mf.artist AS artist, mf.album AS album,
+                           a.play_count AS plays
+                    FROM annotation a
+                    JOIN media_file mf ON mf.id = a.item_id
+                    WHERE a.item_type = "media_file" AND a.user_id = :uid
+                      AND a.play_count > 0
+                    ORDER BY plays DESC, title ASC
+                    LIMIT :lim';
+            $params = ['uid' => $userId, 'lim' => $limit];
+        }
+
+        $rows = $this->connection()->fetchAllAssociative($sql, $params, [
+            'lim' => \Doctrine\DBAL\ParameterType::INTEGER,
+        ]);
+
+        return array_map(static fn (array $r) => [
+            'id' => (string) $r['id'],
+            'title' => (string) $r['title'],
+            'artist' => (string) $r['artist'],
+            'album' => (string) $r['album'],
+            'plays' => (int) $r['plays'],
+        ], $rows);
+    }
+
+    /**
      * Resolve a list of media_file ids to TrackSummary[], preserving order.
      *
      * @param string[] $ids

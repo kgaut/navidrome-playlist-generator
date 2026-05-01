@@ -1,0 +1,120 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Statistiques{% endblock %}
+
+{% block body %}
+    <div class="flex items-start justify-between mb-6 flex-wrap gap-3">
+        <h1 class="text-2xl font-semibold">Statistiques d'écoute</h1>
+
+        <form method="get" action="{{ path('app_stats') }}" class="flex items-center gap-2">
+            <label for="period" class="text-sm">Période :</label>
+            <select name="period" id="period" onchange="this.form.submit()"
+                    class="border rounded px-2 py-1 text-sm">
+                {% for key, label in periods %}
+                    <option value="{{ key }}" {{ key == period ? 'selected' : '' }}>{{ label }}</option>
+                {% endfor %}
+            </select>
+        </form>
+
+        <form method="post" action="{{ path('app_stats_refresh') }}">
+            <input type="hidden" name="period" value="{{ period }}">
+            <input type="hidden" name="_token" value="{{ csrf_token('stats_refresh_' ~ period) }}">
+            <button type="submit" class="bg-emerald-600 hover:bg-emerald-700 text-white px-3 py-1.5 rounded text-sm">
+                ↻ Rafraîchir
+            </button>
+        </form>
+    </div>
+
+    {% if stale %}
+        <div class="bg-amber-50 border border-amber-300 text-amber-800 rounded p-4 mb-6 text-sm">
+            Aucune donnée en cache pour cette période. Cliquez sur <strong>Rafraîchir</strong> pour la calculer.
+        </div>
+    {% else %}
+        <p class="text-xs text-slate-500 mb-4">
+            Calculé le <strong>{{ snapshot.computedAt|date('Y-m-d H:i:s') }}</strong>
+            {% if snapshot.data.window_from %}
+                — fenêtre :
+                {{ snapshot.data.window_from|date('Y-m-d H:i') }}
+                → {{ snapshot.data.window_to|date('Y-m-d H:i') }}
+            {% endif %}
+        </p>
+
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+            <div class="bg-white shadow rounded p-5">
+                <div class="text-xs uppercase text-slate-500">Total d'écoutes</div>
+                <div class="text-3xl font-semibold mt-1">{{ snapshot.data.total_plays|number_format(0, '.', ' ') }}</div>
+            </div>
+            <div class="bg-white shadow rounded p-5">
+                <div class="text-xs uppercase text-slate-500">Morceaux distincts écoutés</div>
+                <div class="text-3xl font-semibold mt-1">{{ snapshot.data.distinct_tracks|number_format(0, '.', ' ') }}</div>
+            </div>
+        </div>
+
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <div class="bg-white shadow rounded overflow-hidden">
+                <div class="px-4 py-3 border-b bg-slate-50">
+                    <h2 class="font-semibold text-sm">Top 10 artistes</h2>
+                </div>
+                {% if snapshot.data.top_artists is empty %}
+                    <div class="p-4 text-sm text-slate-500">Aucune donnée.</div>
+                {% else %}
+                    <table class="w-full text-sm">
+                        <thead class="bg-slate-100 text-slate-600 text-left text-xs">
+                        <tr>
+                            <th class="px-3 py-2 w-10">#</th>
+                            <th class="px-3 py-2">Artiste</th>
+                            <th class="px-3 py-2 w-20 text-right">Plays</th>
+                        </tr>
+                        </thead>
+                        <tbody class="divide-y">
+                        {% for row in snapshot.data.top_artists %}
+                            <tr>
+                                <td class="px-3 py-1.5 text-slate-400">{{ loop.index }}</td>
+                                <td class="px-3 py-1.5 font-medium">{{ row.artist }}</td>
+                                <td class="px-3 py-1.5 text-right">{{ row.plays|number_format(0, '.', ' ') }}</td>
+                            </tr>
+                        {% endfor %}
+                        </tbody>
+                    </table>
+                {% endif %}
+            </div>
+
+            <div class="bg-white shadow rounded overflow-hidden">
+                <div class="px-4 py-3 border-b bg-slate-50">
+                    <h2 class="font-semibold text-sm">Top 50 morceaux</h2>
+                </div>
+                {% if snapshot.data.top_tracks is empty %}
+                    <div class="p-4 text-sm text-slate-500">Aucune donnée.</div>
+                {% else %}
+                    <div class="max-h-[600px] overflow-y-auto">
+                        <table class="w-full text-sm">
+                            <thead class="bg-slate-100 text-slate-600 text-left text-xs sticky top-0">
+                            <tr>
+                                <th class="px-3 py-2 w-10">#</th>
+                                <th class="px-3 py-2">Titre</th>
+                                <th class="px-3 py-2">Artiste</th>
+                                <th class="px-3 py-2 w-20 text-right">Plays</th>
+                            </tr>
+                            </thead>
+                            <tbody class="divide-y">
+                            {% for row in snapshot.data.top_tracks %}
+                                <tr>
+                                    <td class="px-3 py-1.5 text-slate-400">{{ loop.index }}</td>
+                                    <td class="px-3 py-1.5">
+                                        {{ row.title }}
+                                        {% if row.album %}
+                                            <div class="text-xs text-slate-500">{{ row.album }}</div>
+                                        {% endif %}
+                                    </td>
+                                    <td class="px-3 py-1.5">{{ row.artist }}</td>
+                                    <td class="px-3 py-1.5 text-right">{{ row.plays|number_format(0, '.', ' ') }}</td>
+                                </tr>
+                            {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+    {% endif %}
+{% endblock %}

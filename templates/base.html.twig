@@ -18,6 +18,7 @@
                 {% if app.user %}
                     <a href="{{ path('app_dashboard') }}" class="hover:underline">Dashboard</a>
                     <a href="{{ path('app_playlist_new') }}" class="hover:underline">Nouvelle playlist</a>
+                    <a href="{{ path('app_stats') }}" class="hover:underline">Statistiques</a>
                     <a href="{{ path('app_settings') }}" class="hover:underline">Réglages</a>
                     <span class="text-slate-400">{{ app.user.userIdentifier }}</span>
                     <a href="{{ path('app_logout') }}" class="hover:underline">Déconnexion</a>

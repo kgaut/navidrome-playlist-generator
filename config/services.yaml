@@ -5,6 +5,7 @@ parameters:
     navidrome.password: '%env(NAVIDROME_PASSWORD)%'
     app.auth_user: '%env(APP_AUTH_USER)%'
     app.auth_password: '%env(APP_AUTH_PASSWORD)%'
+    app.stats_refresh_schedule: '%env(STATS_REFRESH_SCHEDULE)%'
 
 services:
     _defaults:
@@ -44,3 +45,7 @@ services:
         arguments:
             $username: '%app.auth_user%'
             $plainPassword: '%app.auth_password%'
+
+    App\Command\DumpCronCommand:
+        arguments:
+            $statsRefreshSchedule: '%app.stats_refresh_schedule%'
