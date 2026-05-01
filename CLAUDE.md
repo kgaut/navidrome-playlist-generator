@@ -27,6 +27,19 @@ Fonctionnalités livrées :
 - **Page `/stats`** : total plays, distinct tracks, top 10 artistes,
   top 50 morceaux, par période (7d/30d/last-month/last-year/all-time),
   cachée dans `stats_snapshot`, refresh manuel + cron.
+- **Page `/stats/compare`** : diff côte à côte de deux périodes avec
+  badges nouveau/disparu/↑/↓/=. `StatsCompareService` fusionne les
+  tops par id (tracks) / nom (artists).
+- **Page `/stats/charts`** : trois Chart.js (plays par mois, top 5
+  artistes timeline, distribution jour-semaine). Lib chargée via CDN
+  jsdelivr dans le block `stylesheets`.
+- **Page `/stats/heatmap`** : deux heatmaps HTML/CSS (jour×heure 90j,
+  année×jour façon GitHub contribs avec sélecteur d'année).
+- **Page `/wrapped/{year}`** : rétrospective annuelle, cachée dans
+  `stats_snapshot` (key `wrapped-<year>`). `WrappedService::compute()`
+  agrège tout : top 25 artistes, top 50 morceaux, new artists, streak
+  jours consécutifs, mois le plus actif, durée totale estimée
+  (extrapolation depuis la durée des top tracks).
 - **Page `/lastfm/import`** : import one-shot du scrobble history
   Last.fm, dédoublonnage à ±N secondes, rapport des non-trouvés rangé
   par fréquence.
@@ -251,9 +264,9 @@ Wirées dans : `.env` (dev), `.env.dist` (template), `phpunit.xml.dist`
 
 ## 8. Roadmap (idées validées mais non encore implémentées)
 
-Sondage utilisateur — sélection multiple. Priorité immédiate déjà
-livrée : Lidarr + historique des runs cron. Il reste, par ordre indicatif
-de simplicité d'implémentation :
+Déjà livré : Lidarr, historique des runs cron, stats avancées
+(`/stats/compare`, `/stats/charts`, `/stats/heatmap`, `/wrapped`).
+Il reste :
 
 - **Sync incrémentale Last.fm** : stocker `last_imported_at`,
   ré-fetch uniquement les nouveaux scrobbles, schedulable en cron.
@@ -263,10 +276,6 @@ de simplicité d'implémentation :
 - **Auto-star les top morceaux** (POST `star.view` Subsonic).
 - **Générateur « Songs you used to love »** : high play_count + pas
   écouté depuis 6 mois.
-- **Wrapped annuel** (`/wrapped/{year}`) style Spotify Wrapped.
-- **Heatmap calendaire** (24×7 jour×heure ou jour×année).
-- **Comparaison de 2 périodes** côte à côte.
-- **Graphiques Chart.js** via CDN.
 - **Notifications cron** (Discord/Slack/Pushover via webhook URL).
 - **Export M3U téléchargeable** depuis la page de prévisualisation.
 - **Webhooks sortants génériques** (POST JSON après chaque run).

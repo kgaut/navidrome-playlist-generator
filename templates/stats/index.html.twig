@@ -3,6 +3,14 @@
 {% block title %}Statistiques{% endblock %}
 
 {% block body %}
+    <div class="flex flex-wrap items-center gap-3 text-xs mb-4">
+        <span class="text-slate-500">Voir aussi :</span>
+        <a href="{{ path('app_stats_compare') }}" class="px-2 py-1 rounded bg-slate-100 hover:bg-slate-200">Comparer 2 périodes</a>
+        <a href="{{ path('app_stats_charts') }}" class="px-2 py-1 rounded bg-slate-100 hover:bg-slate-200">Graphiques</a>
+        <a href="{{ path('app_stats_heatmap') }}" class="px-2 py-1 rounded bg-slate-100 hover:bg-slate-200">Heatmap</a>
+        <a href="{{ path('app_wrapped_default') }}" class="px-2 py-1 rounded bg-slate-100 hover:bg-slate-200">Wrapped</a>
+    </div>
+
     <div class="flex items-start justify-between mb-6 flex-wrap gap-3">
         <h1 class="text-2xl font-semibold">Statistiques d'écoute</h1>
 

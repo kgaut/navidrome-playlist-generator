@@ -18,7 +18,23 @@
                 {% if app.user %}
                     <a href="{{ path('app_dashboard') }}" class="hover:underline">Dashboard</a>
                     <a href="{{ path('app_playlist_new') }}" class="hover:underline">Nouvelle playlist</a>
-                    <a href="{{ path('app_stats') }}" class="hover:underline">Statistiques</a>
+
+                    {# Stats dropdown — pure CSS hover/focus, no JS #}
+                    <div class="relative group">
+                        <button type="button"
+                                class="hover:underline flex items-center gap-1 cursor-pointer"
+                                aria-haspopup="true">
+                            Statistiques <span class="text-xs">▾</span>
+                        </button>
+                        <div class="absolute right-0 top-full mt-1 w-56 bg-slate-800 text-slate-100 rounded shadow-lg invisible opacity-0 group-hover:visible group-hover:opacity-100 group-focus-within:visible group-focus-within:opacity-100 transition py-1 z-30">
+                            <a href="{{ path('app_stats') }}" class="block px-4 py-2 text-sm hover:bg-slate-700">Vue d'ensemble</a>
+                            <a href="{{ path('app_stats_compare') }}" class="block px-4 py-2 text-sm hover:bg-slate-700">Comparer 2 périodes</a>
+                            <a href="{{ path('app_stats_charts') }}" class="block px-4 py-2 text-sm hover:bg-slate-700">Graphiques</a>
+                            <a href="{{ path('app_stats_heatmap') }}" class="block px-4 py-2 text-sm hover:bg-slate-700">Heatmap</a>
+                            <a href="{{ path('app_wrapped_default') }}" class="block px-4 py-2 text-sm hover:bg-slate-700">Wrapped</a>
+                        </div>
+                    </div>
+
                     <a href="{{ path('app_lastfm_import') }}" class="hover:underline">Import Last.fm</a>
                     <a href="{{ path('app_history') }}" class="hover:underline">Historique</a>
                     <a href="{{ path('app_settings') }}" class="hover:underline">Réglages</a>

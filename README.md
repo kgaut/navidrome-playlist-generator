@@ -154,6 +154,28 @@ php bin/console app:fixtures:seed
 symfony serve                        # https://127.0.0.1:8000
 ```
 
+## Statistiques d'écoute
+
+Cinq pages stats accessibles via le menu déroulant **Statistiques** :
+
+| Route                | Contenu                                                                      |
+|----------------------|------------------------------------------------------------------------------|
+| `/stats`             | Vue d'ensemble par période (7d/30d/last-month/last-year/all-time), cachée    |
+|                      | dans `stats_snapshot`, refresh manuel + cron `STATS_REFRESH_SCHEDULE`.       |
+| `/stats/compare`     | Comparaison côte à côte de deux périodes : top artistes / morceaux fusionnés |
+|                      | avec deltas et badges (nouveau / disparu / ↑N / ↓N / =).                     |
+| `/stats/charts`      | Trois graphiques Chart.js : écoutes par mois, top 5 artistes au fil du       |
+|                      | temps, distribution par jour de la semaine.                                  |
+| `/stats/heatmap`     | Deux heatmaps HTML/CSS pures : jour×heure (90 derniers jours) et             |
+|                      | année×jour façon GitHub contribs (avec sélecteur d'année).                   |
+| `/wrapped/{year}`    | Rétrospective annuelle façon Spotify Wrapped : total plays / heures écoutées |
+|                      | / morceaux distincts, top 25 artistes, top 50 morceaux, nouvelles            |
+|                      | découvertes, mois le plus actif, plus longue série d'écoutes consécutives.   |
+|                      | Cachée dans `stats_snapshot` (key `wrapped-<year>`).                         |
+
+Toutes les pages requièrent la table `scrobbles` Navidrome (≥ 0.55) et
+affichent un bandeau si elle n'est pas trouvée.
+
 ## Import one-shot des scrobbles Last.fm
 
 Deux moyens : **page web** `/lastfm/import` (pratique pour quelques
