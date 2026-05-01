@@ -16,7 +16,7 @@ class LastFmClient
 
     /**
      * Iterate over all scrobbles for the given user, oldest first when
-     * $from is provided, newest first otherwise. Yields LastFmScrobble
+     * $dateMin is provided, newest first otherwise. Yields LastFmScrobble
      * objects one by one to avoid loading the whole history in memory.
      *
      * @return \Generator<LastFmScrobble>
@@ -24,8 +24,8 @@ class LastFmClient
     public function streamRecentTracks(
         string $apiKey,
         string $user,
-        ?\DateTimeInterface $from = null,
-        ?\DateTimeInterface $to = null,
+        ?\DateTimeInterface $dateMin = null,
+        ?\DateTimeInterface $dateMax = null,
     ): \Generator {
         $page = 1;
         $totalPages = null;
@@ -39,11 +39,11 @@ class LastFmClient
                 'limit' => self::PAGE_SIZE,
                 'page' => $page,
             ];
-            if ($from !== null) {
-                $params['from'] = $from->getTimestamp();
+            if ($dateMin !== null) {
+                $params['from'] = $dateMin->getTimestamp();
             }
-            if ($to !== null) {
-                $params['to'] = $to->getTimestamp();
+            if ($dateMax !== null) {
+                $params['to'] = $dateMax->getTimestamp();
             }
 
             $payload = $this->call($params);

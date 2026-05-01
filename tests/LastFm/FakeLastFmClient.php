@@ -20,8 +20,8 @@ final class FakeLastFmClient extends LastFmClient
     public function streamRecentTracks(
         string $apiKey,
         string $user,
-        ?\DateTimeInterface $from = null,
-        ?\DateTimeInterface $to = null,
+        ?\DateTimeInterface $dateMin = null,
+        ?\DateTimeInterface $dateMax = null,
     ): \Generator {
         foreach ($this->scrobbles as $s) {
             yield $s;

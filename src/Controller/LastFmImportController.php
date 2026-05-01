@@ -43,8 +43,8 @@ class LastFmImportController extends AbstractController
                     $report = $this->importer->import(
                         apiKey: $apiKey,
                         lastFmUser: (string) $data['lastfm_user'],
-                        from: $data['from'] instanceof \DateTimeInterface ? \DateTimeImmutable::createFromInterface($data['from']) : null,
-                        to: $data['to'] instanceof \DateTimeInterface ? \DateTimeImmutable::createFromInterface($data['to']) : null,
+                        dateMin: $data['date_min'] instanceof \DateTimeInterface ? \DateTimeImmutable::createFromInterface($data['date_min']) : null,
+                        dateMax: $data['date_max'] instanceof \DateTimeInterface ? \DateTimeImmutable::createFromInterface($data['date_max']) : null,
                         toleranceSeconds: max(0, (int) ($data['tolerance'] ?? 60)),
                         dryRun: (bool) ($data['dry_run'] ?? true),
                         maxScrobbles: $data['max_scrobbles'] !== null ? max(1, (int) $data['max_scrobbles']) : null,

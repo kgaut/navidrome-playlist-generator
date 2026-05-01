@@ -38,13 +38,13 @@ class ImportLastFmCommand extends Command
                 'Last.fm API key (defaults to LASTFM_API_KEY env var).',
             )
             ->addOption(
-                'from',
+                'date-min',
                 null,
                 InputOption::VALUE_REQUIRED,
-                'Only import scrobbles after this date (YYYY-MM-DD or ISO).',
+                'Only import scrobbles on or after this date (YYYY-MM-DD or ISO).',
             )
             ->addOption(
-                'to',
+                'date-max',
                 null,
                 InputOption::VALUE_REQUIRED,
                 'Only import scrobbles before this date (YYYY-MM-DD or ISO).',
@@ -89,16 +89,16 @@ class ImportLastFmCommand extends Command
         }
 
         $user = (string) $input->getArgument('lastfm-user');
-        $from = $this->parseDate($input->getOption('from'));
-        $to = $this->parseDate($input->getOption('to'));
+        $dateMin = $this->parseDate($input->getOption('date-min'));
+        $dateMax = $this->parseDate($input->getOption('date-max'));
         $tolerance = max(0, (int) $input->getOption('tolerance'));
         $dryRun = (bool) $input->getOption('dry-run');
 
         $io->section(sprintf(
             'Importing scrobbles for Last.fm user "%s"%s%s%s',
             $user,
-            $from ? ' from ' . $from->format('Y-m-d') : '',
-            $to ? ' to ' . $to->format('Y-m-d') : '',
+            $dateMin ? ' from ' . $dateMin->format('Y-m-d') : '',
+            $dateMax ? ' to ' . $dateMax->format('Y-m-d') : '',
             $dryRun ? ' [DRY-RUN]' : '',
         ));
 
@@ -107,8 +107,8 @@ class ImportLastFmCommand extends Command
             $report = $this->importer->import(
                 apiKey: $apiKey,
                 lastFmUser: $user,
-                from: $from,
-                to: $to,
+                dateMin: $dateMin,
+                dateMax: $dateMax,
                 toleranceSeconds: $tolerance,
                 dryRun: $dryRun,
                 progress: function (int $f, int $i, int $d, int $u) use ($io): void {

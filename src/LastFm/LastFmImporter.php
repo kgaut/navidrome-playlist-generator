@@ -24,8 +24,8 @@ class LastFmImporter
     public function import(
         string $apiKey,
         string $lastFmUser,
-        ?\DateTimeInterface $from = null,
-        ?\DateTimeInterface $to = null,
+        ?\DateTimeInterface $dateMin = null,
+        ?\DateTimeInterface $dateMax = null,
         int $toleranceSeconds = 60,
         bool $dryRun = false,
         ?callable $progress = null,
@@ -41,7 +41,7 @@ class LastFmImporter
             );
         }
 
-        foreach ($this->client->streamRecentTracks($apiKey, $lastFmUser, $from, $to) as $scrobble) {
+        foreach ($this->client->streamRecentTracks($apiKey, $lastFmUser, $dateMin, $dateMax) as $scrobble) {
             if ($maxScrobbles !== null && $report->fetched >= $maxScrobbles) {
                 break;
             }

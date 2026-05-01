@@ -31,14 +31,14 @@ class LastFmImportType extends AbstractType
                 'always_empty' => false,
                 'help' => 'Optionnelle si LASTFM_API_KEY est défini dans l\'environnement. À créer sur last.fm/api/account/create.',
             ])
-            ->add('from', DateType::class, [
-                'label' => 'Depuis (optionnel)',
+            ->add('date_min', DateType::class, [
+                'label' => 'Date min (optionnel)',
                 'required' => false,
                 'widget' => 'single_text',
                 'html5' => true,
             ])
-            ->add('to', DateType::class, [
-                'label' => 'Jusqu\'à (optionnel)',
+            ->add('date_max', DateType::class, [
+                'label' => 'Date max (optionnel)',
                 'required' => false,
                 'widget' => 'single_text',
                 'html5' => true,

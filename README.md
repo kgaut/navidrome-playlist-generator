@@ -154,7 +154,7 @@ Accédez à `/lastfm/import` une fois connecté. Le formulaire propose :
 
 - Identifiant Last.fm + API key (la clé peut aussi venir de
   l'environnement via `LASTFM_API_KEY`).
-- Filtres `from` / `to` optionnels.
+- Filtres `date_min` / `date_max` optionnels.
 - Tolérance dedup (secondes) — un scrobble n'est pas réinséré s'il en
   existe déjà un sur la même piste à ± cette durée.
 - Limite de sécurité (max scrobbles, défaut 5 000) pour éviter les
@@ -171,7 +171,7 @@ scrobbles décroissant.
 
 ```bash
 php bin/console app:lastfm:import <lastfm-user> --api-key=YOUR_KEY \
-    [--from=YYYY-MM-DD] [--to=YYYY-MM-DD] \
+    [--date-min=YYYY-MM-DD] [--date-max=YYYY-MM-DD] \
     [--tolerance=60] [--dry-run] [--show-unmatched=50|all|0] \
     [--max-scrobbles=N]
 ```
@@ -184,7 +184,7 @@ la variable d'environnement `LASTFM_API_KEY`.
 
 1. **Pagination** : utilise `user.getRecentTracks` de l'API Last.fm,
    200 scrobbles par page, jusqu'au bout de l'historique (filtré par
-   `--from` / `--to` si fournis).
+   `--date-min` / `--date-max` si fournis).
 2. **Matching** sur la lib Navidrome :
    - d'abord par MusicBrainz ID si Last.fm le fournit ;
    - sinon par couple `(artist, title)` normalisé (lowercase + trim).
@@ -229,7 +229,7 @@ lando symfony app:lastfm:import myuser --api-key=XXX --dry-run
 
 # Import de toute l'année 2024 :
 lando symfony app:lastfm:import myuser --api-key=XXX \
-    --from=2024-01-01 --to=2025-01-01
+    --date-min=2024-01-01 --date-max=2025-01-01
 
 # Voir tous les morceaux non trouvés (utile pour audit complet) :
 lando symfony app:lastfm:import myuser --api-key=XXX --show-unmatched=all
