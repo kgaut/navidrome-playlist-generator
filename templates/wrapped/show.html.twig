@@ -1,0 +1,154 @@
+{% extends 'base.html.twig' %}
+
+{% block title %}Wrapped {{ year }}{% endblock %}
+
+{% block body %}
+    <div class="flex items-start justify-between mb-6 flex-wrap gap-3">
+        <div>
+            <h1 class="text-3xl font-bold">Votre {{ year }} en musique</h1>
+            <p class="text-sm text-slate-500">Rétrospective annuelle générée depuis vos scrobbles Navidrome.</p>
+        </div>
+        <div class="flex items-center gap-2">
+            <form method="get" action="{{ path('app_wrapped_default') }}" class="inline">
+                <select name="year" onchange="window.location.href = '{{ path('app_wrapped', {year: 9999}) }}'.replace('9999', this.value)"
+                        class="border rounded px-2 py-1 text-sm">
+                    {% for y in available_years %}
+                        <option value="{{ y }}" {{ y == year ? 'selected' : '' }}>Wrapped {{ y }}</option>
+                    {% endfor %}
+                </select>
+            </form>
+            <form method="post" action="{{ path('app_wrapped_refresh', {year: year}) }}">
+                <input type="hidden" name="_token" value="{{ csrf_token('wrapped_refresh_' ~ year) }}">
+                <button type="submit" class="bg-emerald-600 hover:bg-emerald-700 text-white px-3 py-1.5 rounded text-sm">
+                    ↻ {{ snapshot ? 'Recalculer' : 'Calculer' }}
+                </button>
+            </form>
+        </div>
+    </div>
+
+    {% if not snapshot %}
+        <div class="bg-amber-50 border border-amber-300 text-amber-800 rounded p-6 text-center">
+            <p class="text-lg font-semibold mb-2">Aucun Wrapped en cache pour {{ year }}</p>
+            <p class="text-sm">Cliquez sur <strong>« Calculer »</strong> pour générer la rétrospective. L'opération prend quelques secondes selon le volume de scrobbles.</p>
+        </div>
+    {% else %}
+        {% set d = snapshot.data %}
+        {% set hours = (d.wrapped_total_seconds_estimate / 3600)|round(0, 'floor') %}
+
+        {# ------------------- HERO ------------------- #}
+        <section class="bg-gradient-to-br from-emerald-500 to-sky-600 text-white rounded-lg p-8 mb-6 shadow-lg">
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-6 text-center">
+                <div>
+                    <div class="text-5xl font-bold">{{ d.total_plays|number_format(0, '.', ' ') }}</div>
+                    <div class="text-sm uppercase tracking-wide mt-1 opacity-90">écoutes au total</div>
+                </div>
+                <div>
+                    <div class="text-5xl font-bold">{{ hours|number_format(0, '.', ' ') }} h</div>
+                    <div class="text-sm uppercase tracking-wide mt-1 opacity-90">de musique <span class="opacity-60">(estimé)</span></div>
+                </div>
+                <div>
+                    <div class="text-5xl font-bold">{{ d.distinct_tracks|number_format(0, '.', ' ') }}</div>
+                    <div class="text-sm uppercase tracking-wide mt-1 opacity-90">morceaux distincts</div>
+                </div>
+            </div>
+        </section>
+
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+            <div class="bg-white shadow rounded p-5">
+                <div class="text-xs uppercase text-slate-500">Plus longue série</div>
+                <div class="text-3xl font-semibold mt-1">{{ d.wrapped_streak_days }} jours</div>
+                <div class="text-xs text-slate-500 mt-1">consécutifs avec au moins une écoute</div>
+            </div>
+            <div class="bg-white shadow rounded p-5">
+                <div class="text-xs uppercase text-slate-500">Mois le plus actif</div>
+                {% if d.wrapped_most_active_month %}
+                    <div class="text-3xl font-semibold mt-1">{{ d.wrapped_most_active_month.month }}</div>
+                    <div class="text-xs text-slate-500 mt-1">{{ d.wrapped_most_active_month.plays|number_format(0, '.', ' ') }} écoutes</div>
+                {% else %}
+                    <div class="text-3xl font-semibold mt-1">—</div>
+                {% endif %}
+            </div>
+            <div class="bg-white shadow rounded p-5">
+                <div class="text-xs uppercase text-slate-500">Nouvelles découvertes</div>
+                <div class="text-3xl font-semibold mt-1">{{ d.wrapped_new_artists|length }} artistes</div>
+                <div class="text-xs text-slate-500 mt-1">jamais écoutés avant {{ year }}</div>
+            </div>
+        </div>
+
+        {# ------------------- TOP ARTISTS ------------------- #}
+        <section class="bg-white shadow rounded overflow-hidden mb-6">
+            <div class="px-4 py-3 border-b bg-slate-50">
+                <h2 class="font-semibold text-sm">Top {{ d.top_artists|length }} artistes</h2>
+            </div>
+            <ol class="divide-y">
+                {% for row in d.top_artists %}
+                    <li class="px-4 py-2 flex items-center gap-4 text-sm">
+                        <span class="text-slate-400 w-6 text-right">{{ loop.index }}</span>
+                        <span class="flex-1 font-medium">{{ row.artist }}</span>
+                        <span class="text-slate-500">{{ row.plays|number_format(0, '.', ' ') }} écoutes</span>
+                        {% set bar_pct = d.top_artists[0].plays > 0 ? (row.plays / d.top_artists[0].plays * 100)|round : 0 %}
+                        <span class="hidden sm:block w-32 h-2 bg-slate-100 rounded">
+                            <span class="block h-2 bg-emerald-500 rounded" style="width: {{ bar_pct }}%"></span>
+                        </span>
+                    </li>
+                {% endfor %}
+            </ol>
+        </section>
+
+        {# ------------------- TOP TRACKS ------------------- #}
+        <section class="bg-white shadow rounded overflow-hidden mb-6">
+            <div class="px-4 py-3 border-b bg-slate-50">
+                <h2 class="font-semibold text-sm">Top {{ d.top_tracks|length }} morceaux</h2>
+            </div>
+            <div class="max-h-[600px] overflow-y-auto">
+                <table class="w-full text-sm">
+                    <thead class="bg-slate-100 text-slate-600 text-left text-xs sticky top-0">
+                    <tr>
+                        <th class="px-3 py-2 w-10">#</th>
+                        <th class="px-3 py-2">Titre</th>
+                        <th class="px-3 py-2">Artiste</th>
+                        <th class="px-3 py-2 w-20 text-right">Plays</th>
+                    </tr>
+                    </thead>
+                    <tbody class="divide-y">
+                    {% for row in d.top_tracks %}
+                        <tr>
+                            <td class="px-3 py-1.5 text-slate-400">{{ loop.index }}</td>
+                            <td class="px-3 py-1.5">
+                                {{ row.title }}
+                                {% if row.album %}
+                                    <div class="text-xs text-slate-500">{{ row.album }}</div>
+                                {% endif %}
+                            </td>
+                            <td class="px-3 py-1.5">{{ row.artist }}</td>
+                            <td class="px-3 py-1.5 text-right">{{ row.plays|number_format(0, '.', ' ') }}</td>
+                        </tr>
+                    {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </section>
+
+        {# ------------------- NEW ARTISTS ------------------- #}
+        {% if d.wrapped_new_artists|length > 0 %}
+            <section class="bg-white shadow rounded overflow-hidden">
+                <div class="px-4 py-3 border-b bg-slate-50">
+                    <h2 class="font-semibold text-sm">Nouvelles découvertes en {{ year }}</h2>
+                </div>
+                <ol class="divide-y">
+                    {% for row in d.wrapped_new_artists %}
+                        <li class="px-4 py-2 flex items-center gap-4 text-sm">
+                            <span class="text-slate-400 w-6 text-right">{{ loop.index }}</span>
+                            <span class="flex-1 font-medium">{{ row.artist }}</span>
+                            <span class="text-xs text-slate-500">premier scrobble : {{ row.first_play|slice(0, 10) }}</span>
+                        </li>
+                    {% endfor %}
+                </ol>
+            </section>
+        {% endif %}
+
+        <p class="text-xs text-slate-500 text-right mt-4">
+            Calculé le {{ snapshot.computedAt|date('Y-m-d H:i') }}
+        </p>
+    {% endif %}
+{% endblock %}

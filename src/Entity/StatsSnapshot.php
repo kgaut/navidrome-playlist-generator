@@ -19,14 +19,12 @@ class StatsSnapshot
     private string $period;
 
     /**
-     * @var array{
-     *     total_plays: int,
-     *     distinct_tracks: int,
-     *     top_artists: list<array{artist: string, plays: int}>,
-     *     top_tracks: list<array{id: string, title: string, artist: string, album: string, plays: int}>,
-     *     window_from: ?string,
-     *     window_to: ?string
-     * }
+     * Free-form JSON payload. The 'stats' periods carry the keys total_plays,
+     * distinct_tracks, top_artists, top_tracks, window_from, window_to ; the
+     * 'wrapped-<year>' periods add wrapped_* keys (year, total seconds estimate,
+     * new artists list, streak days, most active month).
+     *
+     * @var array<string, mixed>
      */
     #[ORM\Column(type: Types::JSON)]
     private array $data = [
@@ -58,14 +56,7 @@ class StatsSnapshot
     }
 
     /**
-     * @return array{
-     *     total_plays: int,
-     *     distinct_tracks: int,
-     *     top_artists: list<array{artist: string, plays: int}>,
-     *     top_tracks: list<array{id: string, title: string, artist: string, album: string, plays: int}>,
-     *     window_from: ?string,
-     *     window_to: ?string
-     * }
+     * @return array<string, mixed>
      */
     public function getData(): array
     {
@@ -73,14 +64,7 @@ class StatsSnapshot
     }
 
     /**
-     * @param array{
-     *     total_plays: int,
-     *     distinct_tracks: int,
-     *     top_artists: list<array{artist: string, plays: int}>,
-     *     top_tracks: list<array{id: string, title: string, artist: string, album: string, plays: int}>,
-     *     window_from: ?string,
-     *     window_to: ?string
-     * } $data
+     * @param array<string, mixed> $data
      */
     public function setData(array $data): self
     {
