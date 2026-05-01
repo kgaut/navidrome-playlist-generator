@@ -3,7 +3,6 @@
 namespace App\Security;
 
 use Symfony\Component\Security\Core\Exception\UserNotFoundException;
-use Symfony\Component\Security\Core\User\InMemoryUser;
 use Symfony\Component\Security\Core\User\PasswordAuthenticatedUserInterface;
 use Symfony\Component\Security\Core\User\PasswordUpgraderInterface;
 use Symfony\Component\Security\Core\User\UserInterface;
@@ -11,11 +10,11 @@ use Symfony\Component\Security\Core\User\UserProviderInterface;
 use Symfony\Component\PasswordHasher\Hasher\PasswordHasherFactoryInterface;
 
 /**
- * @implements UserProviderInterface<InMemoryUser>
+ * @implements UserProviderInterface<EnvUser>
  */
 class EnvUserProvider implements UserProviderInterface, PasswordUpgraderInterface
 {
-    private ?InMemoryUser $cached = null;
+    private ?EnvUser $cached = null;
 
     public function __construct(
         private readonly string $username,
@@ -31,9 +30,9 @@ class EnvUserProvider implements UserProviderInterface, PasswordUpgraderInterfac
         }
 
         if ($this->cached === null) {
-            $hasher = $this->hasherFactory->getPasswordHasher(InMemoryUser::class);
+            $hasher = $this->hasherFactory->getPasswordHasher(EnvUser::class);
             $hashed = $hasher->hash($this->plainPassword);
-            $this->cached = new InMemoryUser($this->username, $hashed, ['ROLE_USER']);
+            $this->cached = new EnvUser($this->username, $hashed, ['ROLE_USER']);
         }
 
         return $this->cached;
@@ -46,7 +45,7 @@ class EnvUserProvider implements UserProviderInterface, PasswordUpgraderInterfac
 
     public function supportsClass(string $class): bool
     {
-        return $class === InMemoryUser::class || is_subclass_of($class, InMemoryUser::class);
+        return $class === EnvUser::class || is_subclass_of($class, EnvUser::class);
     }
 
     public function upgradePassword(PasswordAuthenticatedUserInterface $user, string $newHashedPassword): void

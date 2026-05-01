@@ -31,3 +31,4 @@
 .lando.yml
 .lando.local.yml
 ###< lando ###
+/.claude/settings.local.json
