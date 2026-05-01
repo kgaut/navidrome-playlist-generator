@@ -8,3 +8,4 @@
 8. Pouvoir stocker en variable d'environnement son nom d'utilisateur lastfm pour éviter d'avoir à le renseigner à chaque fois.
 9. Lors de la génération d'un wrapped j'ai l'erreur `An exception has been thrown during the rendering of a template ("Warning: A non-numeric value encountered") in wrapped/show.html.twig at line 57.`
 10. Dans l'historique des import, ajoute en colonne la date-min et date-max
+11. Sur la preview d'une playlist, la colonne `Plays` ne semble pas indiquer le total de lecture de la période concernée.
