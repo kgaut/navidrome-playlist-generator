@@ -952,36 +952,39 @@ class NavidromeRepository
      */
     public function findMediaFileByArtistTitle(string $artist, string $title): ?string
     {
-        $artist = self::normalize($artist);
-        $title = self::normalize($title);
-        if ($artist === '' || $title === '') {
+        $artistN = self::normalize($artist);
+        $titleN = self::normalize($title);
+        if ($artistN === '' || $titleN === '') {
             return null;
         }
 
-        $id = $this->lookupExactArtistTitle($artist, $title);
+        $id = $this->lookupExactArtistTitle($artistN, $titleN);
         if ($id !== null) {
             return $id;
         }
 
-        $leadArtist = self::stripFeaturedArtists($artist);
-        $bareTitle = self::stripVersionMarkers($title);
-        $artistChanged = $leadArtist !== '' && $leadArtist !== $artist;
-        $titleChanged = $bareTitle !== '' && $bareTitle !== $title;
+        // Strip decorations on the ORIGINAL inputs — the regexes rely on
+        // delimiters (parens, dashes, dots in "feat.") that self::normalize()
+        // now strips out. Re-normalize the stripped form before lookup.
+        $leadArtistN = self::normalize(self::stripFeaturedArtists($artist));
+        $bareTitleN = self::normalize(self::stripVersionMarkers($title));
+        $artistChanged = $leadArtistN !== '' && $leadArtistN !== $artistN;
+        $titleChanged = $bareTitleN !== '' && $bareTitleN !== $titleN;
 
         if ($artistChanged) {
-            $id = $this->lookupExactArtistTitle($leadArtist, $title);
+            $id = $this->lookupExactArtistTitle($leadArtistN, $titleN);
             if ($id !== null) {
                 return $id;
             }
         }
         if ($titleChanged) {
-            $id = $this->lookupExactArtistTitle($artist, $bareTitle);
+            $id = $this->lookupExactArtistTitle($artistN, $bareTitleN);
             if ($id !== null) {
                 return $id;
             }
         }
         if ($artistChanged && $titleChanged) {
-            return $this->lookupExactArtistTitle($leadArtist, $bareTitle);
+            return $this->lookupExactArtistTitle($leadArtistN, $bareTitleN);
         }
 
         return null;
@@ -1000,33 +1003,35 @@ class NavidromeRepository
     }
 
     /**
-     * Drop a trailing or parenthesized featuring suffix from an already
-     * normalized artist string. Recognises `feat`, `feat.`, `ft`, `ft.`,
-     * `featuring` (case-insensitive — but the input is expected lowercased
-     * already by self::normalize). Returns the input unchanged when no
-     * marker is present.
+     * Drop a trailing or parenthesized featuring suffix from a (raw, not yet
+     * normalized) artist string. Recognises `feat`, `feat.`, `ft`, `ft.`,
+     * `featuring` case-insensitively. Returns the input unchanged when no
+     * marker is present. Operates on the raw input because self::normalize()
+     * strips parens/dots, which would defeat the patterns below.
      */
-    private static function stripFeaturedArtists(string $artistNormalized): string
+    private static function stripFeaturedArtists(string $artist): string
     {
         // 1. Strip parenthesized suffix: "(feat. …)" / "(ft. …)" / "(featuring …)".
-        $stripped = preg_replace('/\s*\((?:feat\.?|ft\.?|featuring)\s+[^)]*\)\s*/u', '', $artistNormalized) ?? $artistNormalized;
+        $stripped = preg_replace('/\s*\((?:feat\.?|ft\.?|featuring)\s+[^)]*\)\s*/iu', '', $artist) ?? $artist;
         // 2. Strip trailing form: " feat. …" / " ft. …" / " featuring …" until end.
-        $stripped = preg_replace('/\s+(?:feat\.?|ft\.?|featuring)\s+.*$/u', '', $stripped) ?? $stripped;
+        $stripped = preg_replace('/\s+(?:feat\.?|ft\.?|featuring)\s+.*$/iu', '', $stripped) ?? $stripped;
 
         return trim($stripped);
     }
 
     /**
-     * Drop a trailing version-marker suffix from an already normalized title.
-     * Handles the parenthesized form "(Radio Edit)" and the dash-separated
-     * form " - Radio Edit" (also en/em dashes). Markers are limited to those
-     * that denote different *masters / packagings* of the same musical
-     * recording (radio/album/single/extended/mono/stereo edit/version/mix and
-     * remaster with optional year). Live / Remix / Acoustic / Instrumental /
-     * Demo are intentionally NOT stripped — they typically refer to a
-     * different recording.
+     * Drop a trailing version-marker suffix from a (raw, not yet normalized)
+     * title. Handles the parenthesized form "(Radio Edit)" and the
+     * dash-separated form " - Radio Edit" (also en/em dashes). Markers are
+     * limited to those that denote different *masters / packagings* of the
+     * same musical recording (radio/album/single/extended/mono/stereo
+     * edit/version/mix and remaster with optional year). Live / Remix /
+     * Acoustic / Instrumental / Demo are intentionally NOT stripped — they
+     * typically refer to a different recording. Operates on the raw input
+     * because self::normalize() strips parens/dashes, which would defeat
+     * the patterns below.
      */
-    private static function stripVersionMarkers(string $titleNormalized): string
+    private static function stripVersionMarkers(string $title): string
     {
         // Order matters: longer alternatives must come first so "remastered 2011"
         // is captured by the year-aware pattern instead of just "remastered".
@@ -1041,9 +1046,9 @@ class NavidromeRepository
             . ')';
 
         // Parenthesized form: " (Radio Edit)".
-        $stripped = preg_replace('/\s*\(' . $markers . '\)\s*$/u', '', $titleNormalized) ?? $titleNormalized;
+        $stripped = preg_replace('/\s*\(' . $markers . '\)\s*$/iu', '', $title) ?? $title;
         // Dash-separated form: " - Radio Edit" (ASCII -, en dash, em dash).
-        $stripped = preg_replace('/\s+[\-\x{2013}\x{2014}]\s+' . $markers . '\s*$/u', '', $stripped) ?? $stripped;
+        $stripped = preg_replace('/\s+[\-\x{2013}\x{2014}]\s+' . $markers . '\s*$/iu', '', $stripped) ?? $stripped;
 
         return trim($stripped);
     }
@@ -1108,10 +1113,14 @@ class NavidromeRepository
     }
 
     /**
-     * Lowercase, trim, and strip Unicode diacritics so that "Beyoncé" matches
-     * "Beyonce", "Sigur Rós" matches "Sigur Ros", "Mötörhead" matches
-     * "Motorhead", etc. Decomposition uses NFKD (compatibility decomposition)
-     * then drops every combining mark (\p{Mn}). Also exposed to SQLite as the
+     * Lowercase, trim, strip Unicode diacritics, then strip every character
+     * that is not a letter, digit or whitespace (collapsing repeated
+     * whitespace afterwards). So "Beyoncé" matches "Beyonce", "Sigur Rós"
+     * matches "Sigur Ros", "AC/DC" matches "ACDC", "Guns N' Roses" matches
+     * "Guns N Roses", "P!nk" matches "Pink", "t.A.T.u." matches "tATu", etc.
+     *
+     * Decomposition uses NFKD (compatibility decomposition) then drops every
+     * combining mark (\p{Mn}). Also exposed to SQLite as the
      * `np_normalize(value)` UDF so that the same transformation is applied
      * server-side on the indexed columns — see {@see connection()}.
      */
@@ -1123,8 +1132,11 @@ class NavidromeRepository
             // Input was not valid UTF-8 — fall back to the lowercased form.
             return $s;
         }
+        $stripped = (string) preg_replace('/\p{Mn}+/u', '', $decomposed);
+        // Drop punctuation/symbols (keep letters, digits, whitespace).
+        $cleaned = (string) preg_replace('/[^\p{L}\p{N}\s]+/u', '', $stripped);
 
-        return (string) preg_replace('/\p{Mn}+/u', '', $decomposed);
+        return trim((string) preg_replace('/\s+/u', ' ', $cleaned));
     }
 
     /**
