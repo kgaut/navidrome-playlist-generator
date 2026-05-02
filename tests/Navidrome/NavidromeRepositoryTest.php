@@ -307,4 +307,45 @@ class NavidromeRepositoryTest extends TestCase
         $this->assertSame('artist-' . md5('Beyoncé'), $repo->findArtistIdByName('Beyonce'));
         $this->assertSame('artist-' . md5('Sigur Rós'), $repo->findArtistIdByName('Sigur Ros'));
     }
+
+    /**
+     * @return iterable<string, array{0: string, 1: string, 2: string, 3: string}>
+     */
+    public static function punctuationVariants(): iterable
+    {
+        // [stored_artist, stored_title, query_artist, query_title]
+        // Note: "P!nk" ↔ "Pink" is NOT covered here — naive punctuation strip
+        // turns "P!nk" into "pnk" (the "!" is not a vowel), so the two forms
+        // remain non-equal. That case requires fuzzy matching (sub-issue #16).
+        yield 'slash (AC/DC)'                    => ['AC/DC', 'Thunderstruck', 'ACDC', 'Thunderstruck'];
+        yield 'reverse slash (ACDC ← AC/DC)'     => ['ACDC', 'Thunderstruck', 'AC/DC', 'Thunderstruck'];
+        yield 'apostrophe (Guns N\' Roses)'      => ["Guns N' Roses", 'November Rain', 'Guns N Roses', 'November Rain'];
+        yield 'curly apostrophe (Guns N’ Roses)' => ['Guns N’ Roses', 'November Rain', 'Guns N Roses', 'November Rain'];
+        yield 'dotted (t.A.T.u.)'                => ['t.A.T.u.', 'All The Things She Said', 'tATu', 'All The Things She Said'];
+        yield 'punct in title (O\' Mine)'        => ['Guns N Roses', "Sweet Child O' Mine", 'Guns N Roses', 'Sweet Child O Mine'];
+    }
+
+    #[DataProvider('punctuationVariants')]
+    public function testFindMediaFileByArtistTitleStripsPunctuation(
+        string $storedArtist,
+        string $storedTitle,
+        string $queryArtist,
+        string $queryTitle,
+    ): void {
+        $conn = NavidromeFixtureFactory::createDatabase($this->dbPath, withScrobbles: false);
+        NavidromeFixtureFactory::insertTrack($conn, 'mf-1', $storedTitle, $storedArtist);
+
+        $repo = new NavidromeRepository($this->dbPath, 'admin');
+        $this->assertSame('mf-1', $repo->findMediaFileByArtistTitle($queryArtist, $queryTitle));
+    }
+
+    public function testFindMediaFileByArtistTitleCollapsesWhitespace(): void
+    {
+        $conn = NavidromeFixtureFactory::createDatabase($this->dbPath, withScrobbles: false);
+        NavidromeFixtureFactory::insertTrack($conn, 'mf-1', 'Some  Track', 'Some  Artist');
+
+        $repo = new NavidromeRepository($this->dbPath, 'admin');
+        $this->assertSame('mf-1', $repo->findMediaFileByArtistTitle('Some Artist', 'Some Track'));
+        $this->assertSame('mf-1', $repo->findMediaFileByArtistTitle('Some   Artist', 'Some   Track'));
+    }
 }

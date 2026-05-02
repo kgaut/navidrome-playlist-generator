@@ -8,6 +8,16 @@ et le projet adhère à [Semantic Versioning 2.0](https://semver.org/lang/fr/).
 ## [Unreleased]
 
 ### Added
+- Matching Last.fm : normalisation de la ponctuation et des caractères
+  spéciaux. Tout ce qui n'est ni lettre, ni chiffre, ni espace est
+  désormais strippé avant le lookup, puis les espaces multiples sont
+  collapsés. `AC/DC` matche `ACDC`, `Guns N' Roses` matche
+  `Guns N Roses` (apostrophe droite ou typographique), `t.A.T.u.`
+  matche `tATu`, etc. Les helpers `stripFeaturedArtists()` /
+  `stripVersionMarkers()` reçoivent désormais l'input brut (les
+  délimiteurs parens/dashes/dots dont leurs regex dépendent sont
+  préservés) et la valeur strippée est re-normalisée avant lookup.
+  Closes #13.
 - Matching Last.fm : normalisation Unicode (décomposition NFKD +
   strip des combining marks `\p{Mn}+`). `Beyoncé` matche désormais
   `Beyonce`, `Sigur Rós` matche `Sigur Ros`, `Mötörhead` matche
