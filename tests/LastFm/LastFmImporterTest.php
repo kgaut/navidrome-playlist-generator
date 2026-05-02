@@ -82,6 +82,37 @@ class LastFmImporterTest extends TestCase
         $this->assertSame(0, (int) $count, 'No row should have been written in dry-run mode');
     }
 
+    public function testImportPrefersTripletLookupWhenAlbumDisambiguates(): void
+    {
+        $conn = NavidromeFixtureFactory::createDatabase($this->dbPath, withScrobbles: true);
+        // Same song lives on the studio album AND on a single — the bare
+        // (artist, title) couple is ambiguous. The album in the scrobble
+        // tells us which row to credit.
+        NavidromeFixtureFactory::insertTrack($conn, 'mf-album', 'One More Time', 'Daft Punk', album: 'Discovery');
+        NavidromeFixtureFactory::insertTrack($conn, 'mf-single', 'One More Time', 'Daft Punk', album: 'One More Time');
+
+        $client = new FakeLastFmClient([
+            new LastFmScrobble('Daft Punk', 'One More Time', 'Discovery', null, new \DateTimeImmutable('2024-06-01 12:00:00')),
+            new LastFmScrobble('Daft Punk', 'One More Time', 'One More Time', null, new \DateTimeImmutable('2024-06-02 12:00:00')),
+        ]);
+
+        $repo = new NavidromeRepository($this->dbPath, 'admin');
+        $events = [];
+        (new LastFmImporter($client, $repo))->import(
+            'k',
+            'u',
+            dryRun: true,
+            onScrobble: function (LastFmScrobble $s, string $status, ?string $mfid) use (&$events): void {
+                $events[] = [$s->album, $mfid];
+            },
+        );
+
+        $this->assertSame([
+            ['Discovery', 'mf-album'],
+            ['One More Time', 'mf-single'],
+        ], $events);
+    }
+
     public function testOnScrobbleCallbackFiresWithStatusAndMediaFileId(): void
     {
         $conn = NavidromeFixtureFactory::createDatabase($this->dbPath, withScrobbles: true);

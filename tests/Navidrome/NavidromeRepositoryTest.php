@@ -385,4 +385,56 @@ class NavidromeRepositoryTest extends TestCase
         $this->assertSame('mf-1', $repo->findMediaFileByArtistTitle('Some Artist', 'Some Track'));
         $this->assertSame('mf-1', $repo->findMediaFileByArtistTitle('Some   Artist', 'Some   Track'));
     }
+
+    public function testFindMediaFileByArtistTitleAlbumPicksByAlbum(): void
+    {
+        $conn = NavidromeFixtureFactory::createDatabase($this->dbPath, withScrobbles: false);
+        // Same song shipped on the studio album AND on a single — album
+        // disambiguates which row the user actually played.
+        NavidromeFixtureFactory::insertTrack($conn, 'mf-album', 'One More Time', 'Daft Punk', album: 'Discovery');
+        NavidromeFixtureFactory::insertTrack($conn, 'mf-single', 'One More Time', 'Daft Punk', album: 'One More Time');
+
+        $repo = new NavidromeRepository($this->dbPath, 'admin');
+        $this->assertSame('mf-album', $repo->findMediaFileByArtistTitleAlbum('Daft Punk', 'One More Time', 'Discovery'));
+        $this->assertSame('mf-single', $repo->findMediaFileByArtistTitleAlbum('Daft Punk', 'One More Time', 'One More Time'));
+    }
+
+    public function testFindMediaFileByArtistTitleAlbumNormalizesAccentAndPunctuation(): void
+    {
+        $conn = NavidromeFixtureFactory::createDatabase($this->dbPath, withScrobbles: false);
+        NavidromeFixtureFactory::insertTrack($conn, 'mf-1', 'Halo', 'Beyoncé', album: "I Am... Sasha Fierce");
+
+        $repo = new NavidromeRepository($this->dbPath, 'admin');
+        $this->assertSame('mf-1', $repo->findMediaFileByArtistTitleAlbum('Beyonce', 'Halo', 'I Am Sasha Fierce'));
+    }
+
+    public function testFindMediaFileByArtistTitleAlbumReturnsNullWhenAmbiguous(): void
+    {
+        $conn = NavidromeFixtureFactory::createDatabase($this->dbPath, withScrobbles: false);
+        // Same triplet inserted twice (e.g., duplicate import) → ambiguous.
+        NavidromeFixtureFactory::insertTrack($conn, 'mf-a', 'One More Time', 'Daft Punk', album: 'Discovery');
+        NavidromeFixtureFactory::insertTrack($conn, 'mf-b', 'One More Time', 'Daft Punk', album: 'Discovery');
+
+        $repo = new NavidromeRepository($this->dbPath, 'admin');
+        $this->assertNull($repo->findMediaFileByArtistTitleAlbum('Daft Punk', 'One More Time', 'Discovery'));
+    }
+
+    public function testFindMediaFileByArtistTitleAlbumReturnsNullOnNoMatch(): void
+    {
+        $conn = NavidromeFixtureFactory::createDatabase($this->dbPath, withScrobbles: false);
+        NavidromeFixtureFactory::insertTrack($conn, 'mf-album', 'One More Time', 'Daft Punk', album: 'Discovery');
+
+        $repo = new NavidromeRepository($this->dbPath, 'admin');
+        // Album doesn't match → caller should fall back to the bare couple lookup.
+        $this->assertNull($repo->findMediaFileByArtistTitleAlbum('Daft Punk', 'One More Time', 'Some Compilation'));
+    }
+
+    public function testFindMediaFileByArtistTitleAlbumReturnsNullOnEmptyAlbum(): void
+    {
+        $conn = NavidromeFixtureFactory::createDatabase($this->dbPath, withScrobbles: false);
+        NavidromeFixtureFactory::insertTrack($conn, 'mf-1', 'One More Time', 'Daft Punk');
+
+        $repo = new NavidromeRepository($this->dbPath, 'admin');
+        $this->assertNull($repo->findMediaFileByArtistTitleAlbum('Daft Punk', 'One More Time', ''));
+    }
 }

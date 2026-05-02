@@ -56,6 +56,16 @@ class LastFmImporter
             if ($scrobble->mbid !== null) {
                 $mediaFileId = $this->navidrome->findMediaFileByMbid($scrobble->mbid);
             }
+            // Try the artist+title+album triplet before the bare couple — the
+            // same song can live on a studio album AND a compilation AND a
+            // single, and the album disambiguates which row the user played.
+            if ($mediaFileId === null && $scrobble->album !== '') {
+                $mediaFileId = $this->navidrome->findMediaFileByArtistTitleAlbum(
+                    $scrobble->artist,
+                    $scrobble->title,
+                    $scrobble->album,
+                );
+            }
             if ($mediaFileId === null) {
                 $mediaFileId = $this->navidrome->findMediaFileByArtistTitle($scrobble->artist, $scrobble->title);
             }

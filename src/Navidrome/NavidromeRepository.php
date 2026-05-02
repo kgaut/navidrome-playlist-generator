@@ -950,6 +950,43 @@ class NavidromeRepository
      * Last.fm tends to credit "Orelsan feat. Thomas Bangalter" or label tracks
      * "Bicycle Race - Remastered 2011" while Navidrome stores the bare form.
      */
+    /**
+     * Disambiguate a (artist, title) lookup with the album. Used as a
+     * tighter pre-step to {@see findMediaFileByArtistTitle()} when the
+     * scrobble carries a non-empty album: the same song can be present on
+     * the studio album, a single, a compilation and a live release —
+     * matching the album resolves which row the user actually played
+     * instead of falling back to the deterministic but arbitrary tie-break.
+     *
+     * Strict semantics: returns the id only when *exactly one* row matches
+     * the normalized triplet. Returns null on zero match (caller falls back
+     * to the couple lookup) or on >1 match (still ambiguous).
+     */
+    public function findMediaFileByArtistTitleAlbum(string $artist, string $title, string $album): ?string
+    {
+        $artistN = self::normalize($artist);
+        $titleN = self::normalize($title);
+        $albumN = self::normalize($album);
+        if ($artistN === '' || $titleN === '' || $albumN === '') {
+            return null;
+        }
+
+        $rows = $this->connection()->fetchAllAssociative(
+            'SELECT id FROM media_file
+             WHERE np_normalize(artist) = :a
+               AND np_normalize(title) = :t
+               AND np_normalize(album) = :al
+             LIMIT 2',
+            ['a' => $artistN, 't' => $titleN, 'al' => $albumN],
+        );
+
+        if (count($rows) !== 1) {
+            return null;
+        }
+
+        return (string) $rows[0]['id'];
+    }
+
     public function findMediaFileByArtistTitle(string $artist, string $title): ?string
     {
         $artistN = self::normalize($artist);
