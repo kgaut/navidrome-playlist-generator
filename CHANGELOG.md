@@ -8,6 +8,15 @@ et le projet adhère à [Semantic Versioning 2.0](https://semver.org/lang/fr/).
 ## [Unreleased]
 
 ### Added
+- Matching Last.fm : désambiguation par triplet
+  `(artist, title, album)`. Nouvelle méthode
+  `NavidromeRepository::findMediaFileByArtistTitleAlbum()` qui
+  retourne l'id seulement quand exactement 1 row matche le triplet
+  normalisé (sinon `null` → fallback à la suite). `LastFmImporter`
+  insère ce lookup entre MBID et couple : MBID → triplet (si album
+  non vide) → couple. Permet de matcher correctement les morceaux
+  qui existent sur plusieurs albums (single + version album +
+  compilation) sans tomber sur le tie-break arbitraire. Closes #15.
 - Matching Last.fm : suppression élargie des décorations de titre.
   `stripVersionMarkers()` retire désormais aussi `Live` (avec ou sans
   qualificatif « Live at Reading 1992 »), `Acoustic`, `Acoustic

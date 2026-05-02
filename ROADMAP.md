@@ -28,7 +28,6 @@ l'ordre d'attaque recommandé.
 
 | #   | Titre                                                              | Effort |
 |-----|--------------------------------------------------------------------|--------|
-| [#15] | Désambiguation par triplet (artist, title, album)               | S      |
 | [#20] | Cache de résolution (positif + négatif)                         | S      |
 | [#22] | Profil strict / default / lax configurable                      | S      |
 | [#16] | Fuzzy match Levenshtein avec seuil                              | M      |
@@ -115,7 +114,6 @@ quand on tagge des releases) :
 [#9]: https://github.com/kgaut/navidrome-playlist-generator/issues/9
 [#10]: https://github.com/kgaut/navidrome-playlist-generator/issues/10
 [#11]: https://github.com/kgaut/navidrome-playlist-generator/issues/11
-[#15]: https://github.com/kgaut/navidrome-playlist-generator/issues/15
 [#16]: https://github.com/kgaut/navidrome-playlist-generator/issues/16
 [#17]: https://github.com/kgaut/navidrome-playlist-generator/issues/17
 [#18]: https://github.com/kgaut/navidrome-playlist-generator/issues/18
