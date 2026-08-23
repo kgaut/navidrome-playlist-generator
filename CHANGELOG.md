@@ -9,6 +9,26 @@ et le projet suit le [versionnage sémantique](https://semver.org/lang/fr/).
 
 <!-- Ajouter ici les changements de la prochaine version, sous Ajouté / Modifié / Corrigé / Supprimé. -->
 
+## [1.4.0] - 2026-08-23
+
+### Ajouté
+
+- **API JSON `GET /api/stats/daily` (+ `/{day}`)** — séries quotidiennes
+  d'écoute agrégées (issue #250), authentifiées par token Bearer
+  (`APP_API_TOKEN`). Deux sources nommées (`?source=navidrome|lastfm`), jours
+  découpés en heure locale (`APP_TIMEZONE`) et **zéro-remplis**. Par jour :
+  morceaux, distincts, artistes, albums, `duration_seconds` +
+  `duration_coverage_pct` (durée via `media_file`, rapprochée par `scrobble_sync`
+  côté Last.fm), `loved_added` (toujours `annotation.starred_at`) et top artiste.
+  Firewall `^/api` stateless + `ApiTokenAuthenticator` (fail-closed si token
+  vide), `DailyListeningStatsService`, requêtes par jour sur
+  `NavidromeRepository` / `ScrobbleRepository`.
+
+### Modifié
+
+- **`Kernel`** pose désormais aussi `TZ` (C runtime) depuis `APP_TIMEZONE`, pour
+  que le bucketing SQLite `'localtime'` de l'API corresponde au fuseau PHP.
+
 ## [1.3.0] - 2026-07-17
 
 ### Ajouté
@@ -91,7 +111,8 @@ L'ancienne POC reste accessible via le tag `poc-v0`.
   `BackupService`, sessions persistantes ; CI (phpcs, PHPStan, PHPUnit, lint
   Twig, build Docker).
 
-[Non publié]: https://github.com/kgaut/navidrome-tools/compare/1.3.0...HEAD
+[Non publié]: https://github.com/kgaut/navidrome-tools/compare/1.4.0...HEAD
+[1.4.0]: https://github.com/kgaut/navidrome-tools/compare/1.3.0...1.4.0
 [1.3.0]: https://github.com/kgaut/navidrome-tools/compare/1.2.0...1.3.0
 [1.2.0]: https://github.com/kgaut/navidrome-tools/compare/1.1.0...1.2.0
 [1.1.0]: https://github.com/kgaut/navidrome-tools/compare/1.0.0...1.1.0

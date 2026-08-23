@@ -253,6 +253,57 @@ Authentification par utilisateur unique (`APP_AUTH_USER` / `APP_AUTH_PASSWORD`).
 
 ---
 
+## API JSON — statistiques d'écoute par jour
+
+Endpoint authentifié exposant des **séries quotidiennes d'écoute** pour un
+consommateur externe (issue #250).
+
+**Auth** : token Bearer statique via `APP_API_TOKEN` (vide = API **désactivée**,
+fail-closed). En-tête `Authorization: Bearer <token>`.
+
+```
+GET /api/stats/daily?from=YYYY-MM-DD&to=YYYY-MM-DD&source=navidrome|lastfm
+GET /api/stats/daily/{YYYY-MM-DD}?source=navidrome|lastfm
+```
+
+- `source` : `navidrome` (défaut) ou `lastfm` — la réponse la nomme toujours.
+- `from`/`to` : bornes incluses (défaut : aujourd'hui) ; plage ≤ 366 jours.
+- Les jours sont découpés en **heure locale** (`APP_TIMEZONE`, ex. `Europe/Paris`)
+  — pour que SQLite bucketise dans ce fuseau, le conteneur doit tourner avec la
+  même zone (le Kernel pose `TZ`/`date_default_timezone` depuis `APP_TIMEZONE`).
+
+```json
+{
+  "source": "navidrome", "from": "2026-08-01", "to": "2026-08-23",
+  "timezone": "Europe/Paris",
+  "days": [
+    { "day": "2026-08-15", "tracks": 52, "distinct_tracks": 48, "artists": 26,
+      "albums": 19, "duration_seconds": 11840, "duration_coverage_pct": 100,
+      "loved_added": 1, "top_artist": { "name": "Stupeflip", "plays": 12 } }
+  ]
+}
+```
+
+Points de contrat :
+
+- **un jour sans écoute est servi avec des zéros**, jamais absent ;
+- **`duration_seconds`** vient de Navidrome (`media_file.duration`) ; côté
+  `lastfm` chaque écoute est rapprochée d'un fichier via `scrobble_sync`, d'où
+  **`duration_coverage_pct`** (part des écoutes du jour dont la durée est connue ;
+  100 côté `navidrome`) ;
+- **`loved_added`** = coups de cœur *posés ce jour-là* (`annotation.starred_at`
+  côté Navidrome) — **toujours** cette source, y compris pour `source=lastfm`
+  (la table Last.fm n'a pas de date de « love ») ;
+- erreurs : `401 {"error":"Unauthorized"}` (token absent/invalide),
+  `400 {"error":"…"}` (source/dates invalides).
+
+```bash
+curl -H "Authorization: Bearer $APP_API_TOKEN" \
+  'https://<host>/api/stats/daily?from=2026-08-01&to=2026-08-23&source=navidrome'
+```
+
+---
+
 ## Commandes console
 
 Toutes via `php bin/console <commande>`. Ajouter `--dry-run` (quand dispo) pour

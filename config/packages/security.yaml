@@ -11,6 +11,13 @@ security:
             pattern: ^/(_(profiler|wdt)|css|images|js)/
             security: false
 
+        api:
+            pattern: ^/api
+            stateless: true
+            provider: env_user_provider
+            custom_authenticators:
+                - App\Security\ApiTokenAuthenticator
+
         main:
             lazy: true
             provider: env_user_provider
@@ -25,6 +32,7 @@ security:
 
     access_control:
         - { path: ^/login, roles: PUBLIC_ACCESS }
+        - { path: ^/api, roles: ROLE_USER }
         - { path: ^/, roles: ROLE_USER }
 
 when@test:
