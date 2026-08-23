@@ -157,6 +157,135 @@ class NavidromeRepository
     }
 
     /**
+     * Per-day listening aggregates for the daily-stats API (issue #250),
+     * bucketed in LOCAL time (SQLite `'localtime'`; the Kernel pins both PHP
+     * and the C runtime TZ to APP_TIMEZONE so the bucket is deterministic).
+     * `$from`/`$to` are the local-midnight boundaries of the range — bound as
+     * epoch so the fast indexed path is used. Duration coverage is 100 % here:
+     * every Navidrome play carries a media_file_id.
+     *
+     * @return array<string, array{tracks: int, distinct_tracks: int, artists: int, albums: int, duration_seconds: int}>
+     *   keyed by 'Y-m-d' (local); only days with plays are present
+     */
+    public function getDailyListening(\DateTimeInterface $from, \DateTimeInterface $to): array
+    {
+        if (!$this->hasScrobblesTable()) {
+            return [];
+        }
+        $userId = $this->resolveUserId();
+
+        $rows = $this->connection()->fetchAllAssociative(
+            "SELECT date(s.submission_time, 'unixepoch', 'localtime') AS day,
+                    COUNT(*) AS tracks,
+                    COUNT(DISTINCT s.media_file_id) AS distinct_tracks,
+                    COUNT(DISTINCT CASE WHEN mf.artist != '' THEN mf.artist END) AS artists,
+                    COUNT(DISTINCT CASE WHEN mf.album != '' THEN mf.album END) AS albums,
+                    COALESCE(SUM(mf.duration), 0) AS duration_seconds
+             FROM scrobbles s
+             JOIN media_file mf ON mf.id = s.media_file_id
+             WHERE s.user_id = :uid AND s.submission_time >= :from AND s.submission_time < :to
+             GROUP BY day",
+            ['uid' => $userId, 'from' => $from->getTimestamp(), 'to' => $to->getTimestamp()],
+            ['from' => \Doctrine\DBAL\ParameterType::INTEGER, 'to' => \Doctrine\DBAL\ParameterType::INTEGER],
+        );
+
+        $out = [];
+        foreach ($rows as $r) {
+            $out[(string) $r['day']] = [
+                'tracks' => (int) $r['tracks'],
+                'distinct_tracks' => (int) $r['distinct_tracks'],
+                'artists' => (int) $r['artists'],
+                'albums' => (int) $r['albums'],
+                'duration_seconds' => (int) $r['duration_seconds'],
+            ];
+        }
+
+        return $out;
+    }
+
+    /**
+     * Top artist (most plays) per local day, for the daily-stats API.
+     *
+     * @return array<string, array{name: string, plays: int}> keyed by 'Y-m-d' (local)
+     */
+    public function getTopArtistByDay(\DateTimeInterface $from, \DateTimeInterface $to): array
+    {
+        if (!$this->hasScrobblesTable()) {
+            return [];
+        }
+        $userId = $this->resolveUserId();
+
+        $rows = $this->connection()->fetchAllAssociative(
+            "SELECT date(s.submission_time, 'unixepoch', 'localtime') AS day,
+                    mf.artist AS artist, COUNT(*) AS plays
+             FROM scrobbles s
+             JOIN media_file mf ON mf.id = s.media_file_id
+             WHERE s.user_id = :uid AND mf.artist != ''
+               AND s.submission_time >= :from AND s.submission_time < :to
+             GROUP BY day, mf.artist
+             ORDER BY day ASC, plays DESC, mf.artist ASC",
+            ['uid' => $userId, 'from' => $from->getTimestamp(), 'to' => $to->getTimestamp()],
+            ['from' => \Doctrine\DBAL\ParameterType::INTEGER, 'to' => \Doctrine\DBAL\ParameterType::INTEGER],
+        );
+
+        return self::reduceTopArtistPerDay($rows);
+    }
+
+    /**
+     * Number of tracks starred (loved) on each local day, from
+     * `annotation.starred_at`. This is the ONLY dated "loved" signal (see
+     * issue #250) — `scrobbles.loved` carries no timestamp. `starred_at` is a
+     * datetime string; we bucket and bound on `date(..., 'localtime')` so the
+     * comparison is format-robust (avoids fragile datetime-string ordering).
+     *
+     * @return array<string, int> 'Y-m-d' (local) => count
+     */
+    public function getStarredAddedByDay(\DateTimeInterface $from, \DateTimeInterface $to): array
+    {
+        $userId = $this->resolveUserId();
+
+        $rows = $this->connection()->fetchAllAssociative(
+            "SELECT date(a.starred_at, 'localtime') AS day, COUNT(*) AS c
+             FROM annotation a
+             WHERE a.user_id = :uid AND a.item_type = 'media_file' AND a.starred = 1
+               AND a.starred_at IS NOT NULL
+               AND date(a.starred_at, 'localtime') >= :from
+               AND date(a.starred_at, 'localtime') < :to
+             GROUP BY day",
+            ['uid' => $userId, 'from' => $from->format('Y-m-d'), 'to' => $to->format('Y-m-d')],
+        );
+
+        $out = [];
+        foreach ($rows as $r) {
+            $out[(string) $r['day']] = (int) $r['c'];
+        }
+
+        return $out;
+    }
+
+    /**
+     * Reduce a day-ordered, plays-desc list of (day, artist, plays) rows to
+     * the single top artist per day. Shared by the Navidrome and Last.fm
+     * daily-stats paths.
+     *
+     * @param list<array<string, mixed>> $rows rows with keys day, artist, plays (day-then-plays ordered)
+     * @return array<string, array{name: string, plays: int}>
+     */
+    public static function reduceTopArtistPerDay(array $rows): array
+    {
+        $out = [];
+        foreach ($rows as $r) {
+            $day = (string) $r['day'];
+            if (isset($out[$day])) {
+                continue; // rows are ordered plays-desc → first seen is the top
+            }
+            $out[$day] = ['name' => (string) $r['artist'], 'plays' => (int) $r['plays']];
+        }
+
+        return $out;
+    }
+
+    /**
      * Stream the user's starred media_files, joined with media_file to
      * expose (artist, title). Used by the Navidrome → Last.fm love-sync
      * to feed `track.love` calls. Yields rows oldest-first so a long run

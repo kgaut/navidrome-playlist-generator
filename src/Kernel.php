@@ -11,14 +11,20 @@ class Kernel extends BaseKernel
 
     public function boot(): void
     {
-        // Apply APP_TIMEZONE before any controller / command runs.
+        // Apply APP_TIMEZONE before any controller / command runs. We set it
+        // BOTH on PHP (date_default_timezone_set) AND on the C runtime
+        // (putenv TZ) so SQLite's `'localtime'` modifier — used by the daily
+        // stats API to bucket plays in local time — resolves to the same zone
+        // regardless of the container's own TZ. SQLite reads TZ, not PHP's tz.
         $tz = $_SERVER['APP_TIMEZONE'] ?? $_ENV['APP_TIMEZONE'] ?? 'UTC';
         if (is_string($tz) && $tz !== '') {
             try {
                 new \DateTimeZone($tz);
                 date_default_timezone_set($tz);
+                putenv('TZ=' . $tz);
             } catch (\Exception) {
                 date_default_timezone_set('UTC');
+                putenv('TZ=UTC');
             }
         }
 

@@ -335,6 +335,97 @@ class ScrobbleRepository extends ServiceEntityRepository
     }
 
     /**
+     * Per-day Last.fm listening aggregates for the daily-stats API (issue
+     * #250), bucketed in LOCAL time. `played_at` is stored UTC, so
+     * `date(played_at, 'localtime')` converts to local; `$from`/`$to` are the
+     * local-midnight range boundaries, compared as UTC datetime strings.
+     * Duration is NOT available here (see getDailyMatchedTargets).
+     *
+     * @return array<string, array{tracks: int, distinct_tracks: int, artists: int, albums: int}>
+     *   keyed by 'Y-m-d' (local); only days with plays are present
+     */
+    public function getDailyListening(string $user, \DateTimeInterface $from, \DateTimeInterface $to): array
+    {
+        $rows = $this->getEntityManager()->getConnection()->fetchAllAssociative(
+            "SELECT date(played_at, 'localtime') AS day,
+                    COUNT(*) AS tracks,
+                    COUNT(DISTINCT artist || char(31) || title) AS distinct_tracks,
+                    COUNT(DISTINCT artist) AS artists,
+                    COUNT(DISTINCT CASE WHEN album != '' THEN artist || char(31) || album END) AS albums
+             FROM scrobbles
+             WHERE lastfm_user = :user AND played_at >= :from AND played_at < :to
+             GROUP BY day",
+            ['user' => $user, 'from' => self::utc($from), 'to' => self::utc($to)],
+        );
+
+        $out = [];
+        foreach ($rows as $r) {
+            $out[(string) $r['day']] = [
+                'tracks' => (int) $r['tracks'],
+                'distinct_tracks' => (int) $r['distinct_tracks'],
+                'artists' => (int) $r['artists'],
+                'albums' => (int) $r['albums'],
+            ];
+        }
+
+        return $out;
+    }
+
+    /**
+     * Per (local day, Navidrome media_file_id) play counts for Last.fm
+     * scrobbles resolved to a Navidrome track via `scrobble_sync`. A NULL
+     * `target_id` row = plays that couldn't be matched (no duration). The
+     * caller resolves the target_ids' durations in the Navidrome DB (the two
+     * DBs can't be JOINed) to compute duration + coverage.
+     *
+     * @return list<array{day: string, target_id: ?string, plays: int}>
+     */
+    public function getDailyMatchedTargets(string $user, \DateTimeInterface $from, \DateTimeInterface $to): array
+    {
+        /** @var list<array{day: string, target_id: ?string, plays: int}> $rows */
+        $rows = $this->getEntityManager()->getConnection()->fetchAllAssociative(
+            "SELECT date(s.played_at, 'localtime') AS day, ss.target_id AS target_id, COUNT(*) AS plays
+             FROM scrobbles s
+             LEFT JOIN scrobble_sync ss
+                 ON ss.scrobble_id = s.id AND ss.target = 'navidrome'
+                AND ss.status IN ('matched', 'duplicate')
+             WHERE s.lastfm_user = :user AND s.played_at >= :from AND s.played_at < :to
+             GROUP BY day, ss.target_id",
+            ['user' => $user, 'from' => self::utc($from), 'to' => self::utc($to)],
+        );
+
+        return $rows;
+    }
+
+    /**
+     * Top artist (most plays) per local day, Last.fm side.
+     *
+     * @return list<array{day: string, artist: string, plays: int}> ordered by day then plays desc
+     */
+    public function getTopArtistByDay(string $user, \DateTimeInterface $from, \DateTimeInterface $to): array
+    {
+        /** @var list<array{day: string, artist: string, plays: int}> $rows */
+        $rows = $this->getEntityManager()->getConnection()->fetchAllAssociative(
+            "SELECT date(played_at, 'localtime') AS day, artist, COUNT(*) AS plays
+             FROM scrobbles
+             WHERE lastfm_user = :user AND artist != '' AND played_at >= :from AND played_at < :to
+             GROUP BY day, artist
+             ORDER BY day ASC, plays DESC, artist ASC",
+            ['user' => $user, 'from' => self::utc($from), 'to' => self::utc($to)],
+        );
+
+        return $rows;
+    }
+
+    /** Format a boundary as the UTC 'Y-m-d H:i:s' string used to store `played_at`. */
+    private static function utc(\DateTimeInterface $dt): string
+    {
+        return \DateTimeImmutable::createFromInterface($dt)
+            ->setTimezone(new \DateTimeZone('UTC'))
+            ->format('Y-m-d H:i:s');
+    }
+
+    /**
      * Translates a filter array into a WHERE clause + positional params.
      * Returns `['', []]` when nothing applies. Status filters are emitted
      * against the LEFT-joined `ss.status`, with the special case
